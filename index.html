@@ -66,11 +66,43 @@ input:hover{border-color:var(--line-strong)}
 .opts label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);font-weight:500}
 .opts input{width:190px;color:var(--ink)}
 .scroll{overflow-x:auto}
-.rows{min-width:600px;display:flex;flex-direction:column;gap:6px}
+.grid{min-width:600px;display:flex;flex-direction:column;gap:6px}
+.grid.pm{min-width:800px}
+.rows{display:flex;flex-direction:column;gap:6px}
 .row,.rows-head{display:grid;grid-template-columns:76px minmax(140px,1.3fr) 104px minmax(140px,1.2fr) 36px;gap:8px;align-items:center}
+.grid.pm .row,.grid.pm .rows-head{grid-template-columns:70px minmax(110px,1.1fr) 76px 76px 76px 74px minmax(120px,1fr) 36px}
 .rows-head{font-size:11.5px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;padding-bottom:2px}
-.row input[data-f="id"],.row input[data-f="dur"],.row input[data-f="pred"]{font-family:var(--mono)}
+.row input{font-family:var(--mono)}
+.row input[data-f="name"]{font-family:var(--font)}
 .row input[data-f="id"]{font-weight:600;text-align:center}
+.te-cell{font-family:var(--mono);font-weight:600;color:var(--accent);text-align:right;padding-right:6px}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:4px;overflow:hidden;align-self:flex-end}
+.seg button{border:0;border-radius:0;padding:7px 14px}
+.seg button+button{border-left:1px solid var(--line-strong)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+:root[data-theme="dark"] .seg button[aria-pressed="true"]{color:#0E161C}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .seg button[aria-pressed="true"]{color:#0E161C}}
+.formula{display:flex;flex-wrap:wrap;gap:12px 32px;padding:12px 14px;background:var(--surface-2);border:1px solid var(--line);border-radius:4px;font-family:var(--mono);font-size:14px;margin-bottom:14px}
+.formula small{display:block;font-family:var(--font);font-size:12px;color:var(--muted);margin-top:1px}
+.pcalc{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px}
+.pbox{border:1px solid var(--line);border-radius:6px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.pbox label{font-size:12px;color:var(--muted);font-weight:500}
+.pbox input{max-width:180px}
+.pbig{font-family:var(--mono);font-size:32px;font-weight:600;line-height:1.1;margin:2px 0 0;color:var(--accent)}
+.pbox code{display:block;font-family:var(--mono);font-size:12.5px;color:var(--ink)}
+.pbox p{margin:0}
+.pbox .sub{color:var(--muted);font-size:13px}
+.pchart{margin-top:16px}
+.p-curve{fill:none;stroke:var(--accent);stroke-width:2}
+.p-area{fill:var(--accent-soft);stroke:none}
+.p-ts{stroke:var(--crit);stroke-width:1.6}
+.p-te{stroke:var(--ink);stroke-width:1.2;stroke-dasharray:4 3}
+.p-tick{font-size:11px;fill:var(--muted)}
+.p-axis{stroke:var(--line-strong);stroke-width:1}
+.p-lbl{font-size:11.5px;font-family:var(--font);fill:var(--ink)}
+tr.inpath td{background:var(--crit-soft)}
+tr.inpath td:first-child{font-weight:700;color:var(--crit)}
+tfoot td{font-weight:600;background:var(--surface-2)}
 .row.bad input{border-color:var(--crit);background:var(--crit-soft)}
 .del{padding:0;height:32px;width:32px;font-size:18px;line-height:1;color:var(--muted)}
 .hint{margin:10px 0 0;color:var(--muted);font-size:12.5px}
@@ -167,11 +199,11 @@ details p{margin:8px 0 0}
 @media (max-width:760px){
   .summary{grid-template-columns:1fr}
   .sum-te{border-right:0;border-bottom:1px solid var(--line)}
-  .two,.rules3{grid-template-columns:1fr}
+  .two,.rules3,.pcalc{grid-template-columns:1fr}
 }
 @media (prefers-reduced-motion:no-preference){button{transition:background .12s,filter .12s}}
 </style>
-<meta name="description" content="Calculadora de ruta crítica por el método CPM: pase hacia adelante, pase hacia atrás, holguras y diagrama de red (Gray y Larson, cap. 6).">
+<meta name="description" content="Calculadora de ruta crítica por CPM y análisis PERT: pase hacia adelante y hacia atrás, holguras, diagrama de red y probabilidad de cumplir un plazo (Gray y Larson).">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231D5E8C'/%3E%3Cpath d='M5 22h6v-6h6v-6h10' fill='none' stroke='%23fff' stroke-width='3' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>:root{color-scheme:light dark}:root[data-theme="light"]{color-scheme:light}:root[data-theme="dark"]{color-scheme:dark}html{-webkit-text-size-adjust:100%}body{margin:0}[hidden]{display:none!important}</style>
 </head>
@@ -180,7 +212,7 @@ details p{margin:8px 0 0}
   <header>
     <p class="eyebrow">Gray &amp; Larson · Administración de proyectos · Capítulo 6</p>
     <h1>Ruta Crítica CPM</h1>
-    <p class="lede">Captura las actividades con su duración y sus predecesoras. La aplicación ejecuta el pase hacia adelante (IT, TT), el pase hacia atrás (CT, FT), calcula las holguras y señala la ruta crítica, con el procedimiento explicado paso a paso.</p>
+    <p class="lede">Captura las actividades con su duración (CPM) o con tres estimaciones (PERT) y sus predecesoras. La aplicación ejecuta el pase hacia adelante (IT, TT), el pase hacia atrás (CT, FT), calcula las holguras y señala la ruta crítica; en modo PERT añade el tiempo esperado, la varianza y la probabilidad de cumplir un plazo.</p>
   </header>
 
   <section class="card" aria-labelledby="h-datos">
@@ -196,6 +228,10 @@ details p{margin:8px 0 0}
       </div>
     </div>
     <div class="opts">
+      <div class="seg" role="group" aria-label="Modo de estimación de duraciones">
+        <button type="button" id="m-cpm" aria-pressed="true">CPM · una estimación</button>
+        <button type="button" id="m-pert" aria-pressed="false">PERT · a, m, b</button>
+      </div>
       <label for="in-unit">Unidad de tiempo
         <input id="in-unit" type="text" value="días hábiles" autocomplete="off">
       </label>
@@ -204,8 +240,10 @@ details p{margin:8px 0 0}
       </label>
     </div>
     <div class="scroll">
-      <div class="rows-head" aria-hidden="true"><span>ID</span><span>Descripción</span><span>Duración</span><span>Predecesoras</span><span></span></div>
-      <div class="rows" id="rows"></div>
+      <div class="grid" id="grid">
+        <div class="rows-head" id="rows-head" aria-hidden="true"></div>
+        <div class="rows" id="rows"></div>
+      </div>
     </div>
     <p class="hint" id="ex-hint">Duraciones de la tabla 6.2 del libro (figuras 6.5 a 6.7), en días hábiles. La descripción es opcional.</p>
   </section>
@@ -225,6 +263,40 @@ details p{margin:8px 0 0}
       </div>
       <div class="scroll"><div id="tbl"></div></div>
       <p class="note">HT = CT − IT = FT − TT (holgura total). HL = menor IT de las sucesoras − TT (holgura libre; en actividades finales se mide contra el fin del proyecto).</p>
+    </section>
+
+    <section class="card" id="pert" aria-labelledby="h-pert" hidden>
+      <div class="card-head">
+        <div>
+          <h2 id="h-pert">Análisis PERT</h2>
+          <p>Tiempo esperado y varianza de cada actividad; la incertidumbre del proyecto se toma de la ruta crítica.</p>
+        </div>
+      </div>
+      <div class="formula">
+        <div>t<sub>e</sub> = (a + 4m + b) / 6<small>Tiempo valorado promedio (7.1)</small></div>
+        <div>σ = (b − a) / 6<small>Desviación estándar de la actividad</small></div>
+        <div>σ<sup>2</sup><sub>TE</sub> = Σ σ<sup>2</sup> (ruta crítica)<small>Varianza del proyecto</small></div>
+        <div>Z = (Ts − TE) / σ<sub>TE</sub><small>Ts: tiempo objetivo</small></div>
+      </div>
+      <p class="note" style="margin:0 0 12px"><b>a</b> = tiempo optimista (1 posibilidad en 100 de terminar antes en condiciones normales) · <b>m</b> = tiempo más probable · <b>b</b> = tiempo pesimista (1 posibilidad en 100 de terminar después en condiciones normales).</p>
+      <div class="scroll"><div id="pert-tbl"></div></div>
+      <div class="pcalc">
+        <div class="pbox">
+          <h3>¿Qué probabilidad hay de terminar en el plazo?</h3>
+          <label for="in-ts">Tiempo objetivo Ts (<span class="u"></span>)</label>
+          <input id="in-ts" type="number" min="0" step="any" inputmode="decimal" placeholder="Ej. 250" autocomplete="off">
+          <div id="out-ts"></div>
+        </div>
+        <div class="pbox">
+          <h3>¿En cuánto tiempo terminaré con cierta confianza?</h3>
+          <label for="in-p">Probabilidad deseada (%)</label>
+          <input id="in-p" type="number" min="0.1" max="99.9" step="any" inputmode="decimal" placeholder="Ej. 90" autocomplete="off">
+          <div id="out-p"></div>
+        </div>
+      </div>
+      <div class="pchart scroll" id="pert-chart"></div>
+      <div class="scroll" id="pert-ref" style="margin-top:14px"></div>
+      <p class="note">Supuestos: actividades independientes y distribución normal de la duración total (teorema del límite central). Al considerar sólo la ruta crítica se ignoran las rutas casi críticas, por lo que la probabilidad calculada tiende a ser optimista cuando existen varias rutas de longitud parecida. Si hay más de una ruta crítica se usa la de mayor varianza.</p>
     </section>
 
     <section class="card" aria-labelledby="h-red">
@@ -266,7 +338,7 @@ details p{margin:8px 0 0}
       <div class="two">
         <div>
           <h3>Pase hacia adelante · tiempos tempranos</h3>
-          <p class="steps-cap">IT + Dur = TT. En una actividad de fusión, el IT es el mayor TT de sus predecesoras.</p>
+          <p class="steps-cap" id="cap-f">IT + Dur = TT. En una actividad de fusión, el IT es el mayor TT de sus predecesoras.</p>
           <ol class="steps" id="steps-f"></ol>
         </div>
         <div>
@@ -321,7 +393,7 @@ details p{margin:8px 0 0}
   </details>
 
   <footer class="foot">
-    Referencia: Gray, C. F. y Larson, E. W., <i>Administración de proyectos</i>, 4.ª ed., McGraw-Hill, cap. 6 (pase hacia adelante, pase hacia atrás y holgura; ejemplo Koll Business Center). Origen del método: Kelley, J. E. y Walker, M. R. (1959), «Critical-path planning and scheduling», <i>Proceedings of the Eastern Joint Computer Conference</i>, pp. 160–173. Los datos se guardan sólo en este navegador.
+    Referencia: Gray, C. F. y Larson, E. W., <i>Administración de proyectos</i>, 4.ª ed., McGraw-Hill, cap. 6 (pase hacia adelante, pase hacia atrás y holgura; ejemplo Koll Business Center) y ecuación 7.1 (tiempo valorado promedio de PERT). Origen de los métodos: Kelley, J. E. y Walker, M. R. (1959), «Critical-path planning and scheduling», <i>Proceedings of the Eastern Joint Computer Conference</i>, pp. 160–173; Malcolm, D. G., Roseboom, J. H., Clark, C. E. y Fazar, W. (1959), «Application of a technique for research and development program evaluation», <i>Operations Research</i>, 7(5), 646–669. Sobre los supuestos de PERT: MacCrimmon, K. R. y Ryavec, C. A. (1964), «An analytical study of the PERT assumptions», <i>Operations Research</i>, 12(1), 16–37. Los datos se guardan sólo en este navegador.
   </footer>
 </div>
 
@@ -330,10 +402,15 @@ details p{margin:8px 0 0}
 'use strict';
 var KEY='cpm-gray-larson-v1', EPS=1e-7;
 var EX=[['A','',5,''],['B','',15,'A'],['C','',10,'A'],['D','',5,'A'],['E','',15,'B, C'],['F','',10,'B, C, D'],['G','',170,'F'],['H','',35,'E, G']];
+/* ejemplo didáctico PERT: m = duraciones de Koll; a y b son ilustrativas (no provienen del libro) */
+var EXP=[['A','',4,5,7,''],['B','',12,15,21,'A'],['C','',8,10,14,'A'],['D','',4,5,7,'A'],['E','',12,15,20,'B, C'],['F','',8,10,14,'B, C, D'],['G','',150,170,200,'F'],['H','',30,35,45,'E, G']];
 var uid=0;
-function mk(id,name,dur,pred){return {uid:++uid,id:id,name:name,dur:String(dur),pred:pred};}
-function exRows(){return EX.map(function(r){return mk(r[0],r[1],r[2],r[3]);});}
-var state={unit:'días hábiles',deadline:'',example:true,rows:exRows()};
+function mk(id,name,dur,pred,a,m,b){return {uid:++uid,id:id,name:name,dur:String(dur),pred:pred,a:String(a==null?'':a),m:String(m==null?'':m),b:String(b==null?'':b)};}
+function exRows(kind){
+  if(kind==='pert')return EXP.map(function(r){return mk(r[0],r[1],r[3],r[5],r[2],r[3],r[4]);});
+  return EX.map(function(r){return mk(r[0],r[1],r[2],r[3]);});
+}
+var state={unit:'días hábiles',deadline:'',mode:'cpm',example:'cpm',pertTs:'',pertP:'90',rows:exRows('cpm')};
 try{
   var raw=localStorage.getItem(KEY);
   if(raw){
@@ -341,12 +418,15 @@ try{
     if(p&&Array.isArray(p.rows)){
       state.unit=typeof p.unit==='string'?p.unit:state.unit;
       state.deadline=typeof p.deadline==='string'?p.deadline:'';
-      state.example=!!p.example;
-      state.rows=p.rows.map(function(r){return mk(String(r.id||''),String(r.name||''),String(r.dur==null?'':r.dur),String(r.pred||''));});
+      state.mode=p.mode==='pert'?'pert':'cpm';
+      state.pertTs=typeof p.pertTs==='string'?p.pertTs:'';
+      state.pertP=typeof p.pertP==='string'?p.pertP:'90';
+      state.example=p.example===true?'cpm':(p.example==='cpm'||p.example==='pert'?p.example:false);
+      state.rows=p.rows.map(function(r){return mk(String(r.id||''),String(r.name||''),String(r.dur==null?'':r.dur),String(r.pred||''),r.a,r.m,r.b);});
     }
   }
 }catch(e){}
-function save(){try{localStorage.setItem(KEY,JSON.stringify({unit:state.unit,deadline:state.deadline,example:state.example,rows:state.rows}));}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({unit:state.unit,deadline:state.deadline,mode:state.mode,pertTs:state.pertTs,pertP:state.pertP,example:state.example,rows:state.rows}));}catch(e){}}
 
 var $=function(s){return document.querySelector(s);};
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
@@ -366,18 +446,29 @@ function nextId(){
 
 /* ------------------------------ motor CPM ------------------------------ */
 function analyze(){
-  var errors=[],notes=[],acts=[],byKey={};
+  var errors=[],notes=[],acts=[],byKey={},isP=state.mode==='pert';
   state.rows.forEach(function(r,ri){
     var id=r.id.trim(),pred=r.pred.trim(),durS=String(r.dur).trim(),name=r.name.trim();
-    if(!id&&!pred&&!durS&&!name)return;
+    var aS=String(r.a).trim(),mS=String(r.m).trim(),bS=String(r.b).trim();
+    if(!id&&!pred&&!name&&(isP?(!aS&&!mS&&!bS):!durS))return;
     if(!id){errors.push({uid:r.uid,msg:'Fila '+(ri+1)+': falta el identificador de la actividad.'});return;}
     var key=id.toLowerCase();
     if(Object.prototype.hasOwnProperty.call(byKey,key)){errors.push({uid:r.uid,msg:'El identificador «'+esc(id)+'» está repetido; cada actividad debe tener uno único (regla 4).'});return;}
-    var dur=durS===''?NaN:Number(durS);
-    var okDur=isFinite(dur)&&dur>=0;
-    if(!okDur)errors.push({uid:r.uid,msg:'La actividad '+esc(id)+' necesita una duración numérica mayor o igual a 0.'});
+    var dur,okDur,aN,mN,bN;
+    if(isP){
+      aN=aS===''?NaN:Number(aS);mN=mS===''?NaN:Number(mS);bN=bS===''?NaN:Number(bS);
+      okDur=isFinite(aN)&&isFinite(mN)&&isFinite(bN)&&aN>=0&&aN<=mN&&mN<=bN;
+      if(!okDur)errors.push({uid:r.uid,msg:'La actividad '+esc(id)+' necesita los tiempos a, m y b numéricos, con 0 ≤ a ≤ m ≤ b (optimista ≤ más probable ≤ pesimista).'});
+      dur=okDur?(aN+4*mN+bN)/6:0;
+    }else{
+      dur=durS===''?NaN:Number(durS);
+      okDur=isFinite(dur)&&dur>=0;
+      if(!okDur)errors.push({uid:r.uid,msg:'La actividad '+esc(id)+' necesita una duración numérica mayor o igual a 0.'});
+    }
     byKey[key]=acts.length;
-    acts.push({uid:r.uid,id:id,key:key,name:name,dur:okDur?dur:0,tokens:pred?pred.split(/[,;\s]+/).filter(Boolean):[]});
+    var act={uid:r.uid,id:id,key:key,name:name,dur:okDur?dur:0,tokens:pred?pred.split(/[,;\s]+/).filter(Boolean):[]};
+    if(isP&&okDur){act.a=aN;act.m=mN;act.b=bN;act.sd=(bN-aN)/6;act.vr=act.sd*act.sd;}
+    acts.push(act);
   });
   acts.forEach(function(a){
     var seen={};a.preds=[];
@@ -432,6 +523,12 @@ function analyze(){
     path.pop();
   }
   starts.forEach(function(s){walk(s,[]);});
+  var pert=null;
+  if(isP){
+    var vars=paths.map(function(p){return p.reduce(function(s,i){return s+acts[i].vr;},0);});
+    var best=0;vars.forEach(function(v,k){if(v>vars[best]+1e-12)best=k;});
+    pert={path:paths[best],variance:vars[best],sd:Math.sqrt(vars[best]),many:paths.length>1};
+  }
   /* observaciones (reglas 5 y 8) */
   if(D<TE-EPS)notes.push({t:'warn',msg:'El plazo límite ('+fmt(D)+') es menor que la duración calculada TE ('+fmt(TE)+'): las actividades críticas quedan con holgura negativa de '+fmt(D-TE)+' y hace falta acortar la ruta crítica.'});
   else if(D>TE+EPS)notes.push({t:'info',msg:'El plazo límite ('+fmt(D)+') es mayor que TE ('+fmt(TE)+'): todas las actividades ganan '+fmt(D-TE)+' de holgura y las críticas son las de holgura mínima.'});
@@ -444,7 +541,7 @@ function analyze(){
     if(acts[p].id.localeCompare(a.id,'es',{numeric:true,sensitivity:'base'})>=0)r5.push(esc(a.id)+' respecto a '+esc(acts[p].id));
   });});
   if(r5.length)notes.push({t:'info',msg:'Regla 5: el identificador de una actividad debería ser mayor que el de sus predecesoras. Revisa: '+r5.slice(0,4).join('; ')+(r5.length>4?' y '+(r5.length-4)+' más':'')+'.'});
-  return {ok:true,acts:acts,order:order,TE:TE,D:D,minHT:minHT,paths:paths,notes:notes};
+  return {ok:true,acts:acts,order:order,TE:TE,D:D,minHT:minHT,paths:paths,notes:notes,pert:pert};
 }
 
 /* ------------------------------ render ------------------------------ */
@@ -458,16 +555,33 @@ function tipo(a){
   return t.join(' · ');
 }
 function renderRows(){
+  var isP=state.mode==='pert';
+  $('#grid').classList.toggle('pm',isP);
+  $('#rows-head').innerHTML=isP
+    ?'<span>ID</span><span>Descripción</span><span title="Tiempo optimista">a</span><span title="Tiempo más probable">m</span><span title="Tiempo pesimista">b</span><span title="Tiempo esperado te = (a + 4m + b) / 6">te</span><span>Predecesoras</span><span></span>'
+    :'<span>ID</span><span>Descripción</span><span>Duración</span><span>Predecesoras</span><span></span>';
+  function num(u,f,p,v,i,lbl){return '<input id="'+p+u+'" data-f="'+f+'" type="number" min="0" step="any" inputmode="decimal" value="'+esc(v)+'" aria-label="'+lbl+', fila '+(i+1)+'" placeholder="0" autocomplete="off">';}
   $('#rows').innerHTML=state.rows.map(function(r,i){
     var u=r.uid;
     return '<div class="row" data-uid="'+u+'">'+
       '<input id="id-'+u+'" data-f="id" value="'+esc(r.id)+'" aria-label="Identificador, fila '+(i+1)+'" autocomplete="off" maxlength="12">'+
       '<input id="nm-'+u+'" data-f="name" value="'+esc(r.name)+'" aria-label="Descripción, fila '+(i+1)+'" placeholder="Descripción (opcional)" autocomplete="off">'+
-      '<input id="du-'+u+'" data-f="dur" type="number" min="0" step="any" inputmode="decimal" value="'+esc(r.dur)+'" aria-label="Duración, fila '+(i+1)+'" placeholder="0" autocomplete="off">'+
+      (isP
+        ?num(u,'a','pa-',r.a,i,'Tiempo optimista a')+num(u,'m','pm-',r.m,i,'Tiempo más probable m')+num(u,'b','pb-',r.b,i,'Tiempo pesimista b')+'<span class="te-cell" id="te-'+u+'" aria-label="Tiempo esperado, fila '+(i+1)+'">–</span>'
+        :num(u,'dur','du-',r.dur,i,'Duración')) +
       '<input id="pr-'+u+'" data-f="pred" value="'+esc(r.pred)+'" aria-label="Predecesoras, fila '+(i+1)+'" placeholder="—" autocomplete="off">'+
       '<button type="button" class="del" data-del="'+u+'" aria-label="Eliminar fila '+(i+1)+'" title="Eliminar">×</button>'+
     '</div>';
   }).join('');
+}
+function updateTeCells(){
+  if(state.mode!=='pert')return;
+  state.rows.forEach(function(r){
+    var el=document.getElementById('te-'+r.uid);if(!el)return;
+    var a=Number(r.a),m=Number(r.m),b=Number(r.b);
+    var ok=String(r.a).trim()!==''&&String(r.m).trim()!==''&&String(r.b).trim()!==''&&isFinite(a+m+b)&&a>=0&&a<=m&&m<=b;
+    el.textContent=ok?fmt((a+4*m+b)/6):'–';
+  });
 }
 function renderMsgs(res){
   var h='';
@@ -617,6 +731,7 @@ function renderSteps(res){
     f+='<li class="'+cls+'"><div class="h"><span class="id">'+esc(a.id)+'</span>'+(tag.length?'<span class="tag">'+tag.join(' · ')+'</span>':'')+'</div><code>'+line1+'</code><code>TT = IT + Dur = '+fmt(a.IT)+' + '+fmt(a.dur)+' = '+fmt(a.TT)+'</code>'+ctl+'</li>';
   });
   $('#steps-f').innerHTML=f;
+  $('#cap-f').textContent='IT + Dur = TT. En una actividad de fusión, el IT es el mayor TT de sus predecesoras.'+(state.mode==='pert'?' En PERT, Dur es el tiempo esperado te = (a + 4m + b) / 6 de cada actividad.':'');
   var fin=res.acts.filter(function(a){return !a.succs.length;});
   var byDL=Math.abs(res.D-res.TE)>EPS;
   $('#cap-b').textContent='FT − Dur = CT. Se parte de FT = '+fmt(res.D)+' '+(state.unit||'')+' ('+(byDL?'plazo límite':'TE')+') en '+(fin.length>1?'las actividades finales':'la actividad final')+'; en una actividad explosiva, el FT es el menor CT de sus sucesoras.';
@@ -636,16 +751,136 @@ function renderSteps(res){
   $('#steps-b').innerHTML=b;
 }
 
+/* ---------------------- distribución normal (PERT) ---------------------- */
+function erfc(x){
+  var z=Math.abs(x),t=1/(1+0.5*z);
+  var r=t*Math.exp(-z*z-1.26551223+t*(1.00002368+t*(0.37409196+t*(0.09678418+t*(-0.18628806+t*(0.27886807+t*(-1.13520398+t*(1.48851587+t*(-0.82215223+t*0.17087277)))))))));
+  return x>=0?r:2-r;
+}
+function cdf(z){return 0.5*erfc(-z/Math.SQRT2);}
+function invCdf(p){
+  var a=[-3.969683028665376e+01,2.209460984245205e+02,-2.759285104469687e+02,1.383577518672690e+02,-3.066479806614716e+01,2.506628277459239e+00];
+  var b=[-5.447609879822406e+01,1.615858368580409e+02,-1.556989798598866e+02,6.680131188771972e+01,-1.328068155288572e+01];
+  var c=[-7.784894002430293e-03,-3.223964580411365e-01,-2.400758277161838e+00,-2.549732539343734e+00,4.374664141464968e+00,2.938163982698783e+00];
+  var d=[7.784695709041462e-03,3.224671290700398e-01,2.445134137142996e+00,3.754408661907416e+00];
+  var pl=0.02425,q,r;
+  if(p<pl){q=Math.sqrt(-2*Math.log(p));return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);}
+  if(p<=1-pl){q=p-0.5;r=q*q;return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);}
+  q=Math.sqrt(-2*Math.log(1-p));
+  return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);
+}
+function pct(p){return (p*100).toFixed(2)+' %';}
+window.__cpm={cdf:cdf,invCdf:invCdf};
+
+function renderPert(res){
+  var sec=$('#pert'),P=res.pert;
+  var on=state.mode==='pert'&&!!P;
+  sec.hidden=!on;
+  if(!on)return;
+  var acts=res.acts,unit=state.unit||'',inPath={},TE=res.TE,sd=P.sd;
+  P.path.forEach(function(i){inPath[i]=1;});
+  sec.querySelector('.u').textContent=unit;
+  var h='<table><thead><tr><th>ID</th><th class="l">Descripción</th><th title="Tiempo optimista">a</th><th title="Tiempo más probable">m</th><th title="Tiempo pesimista">b</th><th title="Tiempo esperado te = (a + 4m + b) / 6">te</th><th title="Desviación estándar σ = (b − a) / 6">σ</th><th title="Varianza σ²">σ²</th><th class="l">Ruta crítica</th></tr></thead><tbody>';
+  acts.forEach(function(a,i){
+    h+='<tr class="'+(inPath[i]?'inpath':'')+'"><td>'+esc(a.id)+'</td><td class="l">'+esc(a.name)+'</td><td>'+fmt(a.a)+'</td><td>'+fmt(a.m)+'</td><td>'+fmt(a.b)+'</td><td><b>'+fmt(a.dur)+'</b></td><td>'+fmt(a.sd)+'</td><td>'+fmt(a.vr)+'</td><td class="l">'+(inPath[i]?'<span class="pill c">Sí</span>':(a.crit?'<span class="pill s">Otra ruta crítica</span>':''))+'</td></tr>';
+  });
+  h+='</tbody><tfoot><tr><td class="l" colspan="7">Ruta usada: '+esc(P.path.map(function(i){return acts[i].id;}).join(' → '))+(P.many?' (mayor varianza entre '+res.paths.length+' rutas críticas)':'')+' · varianza del proyecto Σσ²</td><td>'+fmt(P.variance)+'</td><td></td></tr></tfoot></table>';
+  $('#pert-tbl').innerHTML=h;
+
+  /* P(T ≤ Ts) */
+  var tsS=String(state.pertTs).trim(),ts=Number(tsS),o1;
+  if(tsS===''||!isFinite(ts)||ts<0){o1='<p class="sub">Escribe un tiempo objetivo Ts para obtener Z y la probabilidad de cumplirlo.</p>';}
+  else if(sd<EPS){
+    o1='<p class="pbig">'+pct(ts>=TE-EPS?1:0)+'</p><p class="sub">Probabilidad de terminar en '+fmt(ts)+' '+esc(unit)+' o antes</p><code>σ<sub>TE</sub> = 0: la ruta crítica no tiene incertidumbre</code>';
+  }else{
+    var z=(ts-TE)/sd,p=cdf(z);
+    o1='<p class="pbig">'+pct(p)+'</p><p class="sub">Probabilidad de terminar en '+fmt(ts)+' '+esc(unit)+' o antes</p>'+
+      '<code>σ<sub>TE</sub> = √'+fmt(P.variance)+' = '+fmt(sd)+'</code>'+
+      '<code>Z = (Ts − TE) / σ<sub>TE</sub> = ('+fmt(ts)+' − '+fmt(TE)+') / '+fmt(sd)+' = '+z.toFixed(2)+'</code>'+
+      '<code>P(T ≤ Ts) = Φ(Z) = '+pct(p)+'</code>';
+  }
+  $('#out-ts').innerHTML=o1;
+
+  /* tiempo para una probabilidad */
+  var pS=String(state.pertP).trim(),pp=Number(pS),o2;
+  if(pS===''||!(pp>0&&pp<100)){o2='<p class="sub">Escribe una probabilidad entre 0 y 100 (por ejemplo 90).</p>';}
+  else{
+    var zz=invCdf(pp/100),tt=TE+zz*sd;
+    o2='<p class="pbig">'+fmt(tt)+'</p><p class="sub">'+esc(unit)+': con '+fmt(pp)+' % de probabilidad el proyecto termina en ese tiempo o antes</p>'+
+      '<code>Z = Φ⁻¹('+(pp/100).toFixed(4)+') = '+zz.toFixed(2)+'</code>'+
+      '<code>T = TE + Z · σ<sub>TE</sub> = '+fmt(TE)+' + '+zz.toFixed(2)+' × '+fmt(sd)+' = '+fmt(tt)+'</code>';
+  }
+  $('#out-p').innerHTML=o2;
+
+  /* curva normal */
+  var ch=$('#pert-chart');
+  if(sd<EPS){ch.innerHTML='<p class="note" style="margin:0">Sin variabilidad en la ruta crítica (a = m = b): el proyecto termina en TE = '+fmt(TE)+' '+esc(unit)+' con certeza. Modifica a y b para ver la curva.</p>';}
+  else{
+    var tsOk=tsS!==''&&isFinite(ts)&&ts>=0;
+    var lo=TE-4*sd,hi=TE+4*sd;
+    if(tsOk){lo=Math.min(lo,ts-0.5*sd);hi=Math.max(hi,ts+0.5*sd);}
+    var W=720,H=250,L=24,R=24,T=26,B=46;
+    var sx=function(x){return L+(x-lo)/(hi-lo)*(W-L-R);};
+    var ymax=1/(sd*Math.sqrt(2*Math.PI));
+    var sy=function(y){return T+(1-y/ymax)*(H-T-B);};
+    var pdf=function(x){var z=(x-TE)/sd;return Math.exp(-0.5*z*z)/(sd*Math.sqrt(2*Math.PI));};
+    var N=200,pts=[],i2;
+    for(i2=0;i2<=N;i2++){var x=lo+(hi-lo)*i2/N;pts.push([x,pdf(x)]);}
+    var curve='M'+pts.map(function(q){return sx(q[0]).toFixed(1)+','+sy(q[1]).toFixed(1);}).join(' L');
+    var g='';
+    if(tsOk&&ts>lo){
+      var end=Math.min(ts,hi),area='M'+sx(lo).toFixed(1)+','+sy(0).toFixed(1);
+      for(i2=0;i2<=N;i2++){var xx=lo+(end-lo)*i2/N;area+=' L'+sx(xx).toFixed(1)+','+sy(pdf(xx)).toFixed(1);}
+      area+=' L'+sx(end).toFixed(1)+','+sy(0).toFixed(1)+' Z';
+      g+='<path class="p-area" d="'+area+'"/>';
+    }
+    g+='<path class="p-curve" d="'+curve+'"/><line class="p-axis" x1="'+L+'" x2="'+(W-R)+'" y1="'+sy(0)+'" y2="'+sy(0)+'"/>';
+    for(var k=-3;k<=3;k++){
+      var xt=TE+k*sd;if(xt<lo||xt>hi)continue;
+      g+='<line class="p-axis" x1="'+sx(xt)+'" x2="'+sx(xt)+'" y1="'+sy(0)+'" y2="'+(sy(0)+5)+'"/>'+
+         '<text class="p-tick" x="'+sx(xt)+'" y="'+(sy(0)+18)+'" text-anchor="middle">'+fmt(xt)+'</text>'+
+         '<text class="p-tick" x="'+sx(xt)+'" y="'+(sy(0)+32)+'" text-anchor="middle">'+(k===0?'TE':(k>0?'+':'−')+Math.abs(k)+'σ')+'</text>';
+    }
+    g+='<line class="p-te" x1="'+sx(TE)+'" x2="'+sx(TE)+'" y1="'+(T-6)+'" y2="'+sy(0)+'"/>';
+    if(tsOk&&ts>=lo&&ts<=hi){
+      var pT=cdf((ts-TE)/sd),tx=sx(ts),anc=tx>W-110?'end':(tx<L+90?'start':'middle');
+      g+='<line class="p-ts" x1="'+tx+'" x2="'+tx+'" y1="'+(T-6)+'" y2="'+sy(0)+'"/><text class="p-lbl" x="'+tx+'" y="'+(T-11)+'" text-anchor="'+anc+'" style="font-weight:600">Ts = '+fmt(ts)+' · P = '+pct(pT)+'</text>';
+    }
+    ch.innerHTML='<svg width="100%" viewBox="0 0 '+W+' '+H+'" style="min-width:560px;display:block" role="img" aria-label="Curva normal de la duración del proyecto con el tiempo objetivo">'+g+'</svg>';
+  }
+
+  /* referencias */
+  var ps=[50,80,90,95,99],r1='',r2='',r3='';
+  ps.forEach(function(q){var z=invCdf(q/100);r1+='<td>'+q+' %</td>';r2+='<td>'+z.toFixed(2)+'</td>';r3+='<td><b>'+fmt(TE+z*sd)+'</b></td>';});
+  $('#pert-ref').innerHTML='<table style="min-width:0"><thead><tr><th class="l" colspan="6">Tiempo de terminación según la confianza deseada ('+esc(unit)+')</th></tr></thead><tbody><tr><td class="l">Probabilidad</td>'+r1+'</tr><tr><td class="l">Z</td>'+r2+'</tr><tr><td class="l">Tiempo T</td>'+r3+'</tr></tbody></table>';
+}
+
+function syncMode(){
+  var isP=state.mode==='pert',ex=state.example;
+  $('#m-cpm').setAttribute('aria-pressed',String(!isP));
+  $('#m-pert').setAttribute('aria-pressed',String(isP));
+  $('#b-ex').textContent=isP?'Cargar ejemplo PERT':'Cargar ejemplo Koll';
+  $('#exbadge').hidden=!ex;
+  $('#ex-hint').hidden=!ex;
+  if(ex==='pert'){
+    $('#exbadge').textContent='Ejemplo didáctico PERT';
+    $('#ex-hint').textContent='Red de Koll Business Center con los tiempos más probables (m) de la tabla 6.2; los tiempos optimista (a) y pesimista (b) son ilustrativos y no provienen del libro.';
+  }else if(ex){
+    $('#exbadge').textContent='Ejemplo: Koll Business Center';
+    $('#ex-hint').textContent='Duraciones de la tabla 6.2 del libro (figuras 6.5 a 6.7), en días hábiles. La descripción es opcional.';
+  }
+}
+
 function update(){
   save();
   var res=analyze();lastRes=res;
   renderMsgs(res);
-  $('#exbadge').hidden=!state.example;
-  $('#ex-hint').hidden=!state.example;
+  updateTeCells();
+  syncMode();
   var ok=!!res.ok;
   $('#results').hidden=!ok;
-  if(!ok)return;
-  renderSummary(res);renderTable(res);renderDiagram(res);renderGantt(res);renderSteps(res);
+  if(!ok){$('#pert').hidden=true;return;}
+  renderSummary(res);renderTable(res);renderPert(res);renderDiagram(res);renderGantt(res);renderSteps(res);
 }
 
 /* ------------------------------ eventos ------------------------------ */
@@ -666,17 +901,49 @@ $('#rows').addEventListener('keydown',function(e){
 });
 function addRow(){
   var r=mk(nextId(),'','','');state.rows.push(r);state.example=false;renderRows();update();
-  var el=document.getElementById('du-'+r.uid);if(el)el.focus();
+  var el=document.getElementById((state.mode==='pert'?'pa-':'du-')+r.uid);if(el)el.focus();
 }
+function syncInputs(){
+  $('#in-unit').value=state.unit;$('#in-deadline').value=state.deadline;
+  $('#in-ts').value=state.pertTs;$('#in-p').value=state.pertP;
+}
+function loadEx(kind){
+  state.rows=exRows(kind);state.mode=kind;state.example=kind;state.unit='días hábiles';state.deadline='';
+  if(kind==='pert'){state.pertTs='250';state.pertP='90';}
+  syncInputs();renderRows();update();
+}
+function setMode(m){
+  if(state.mode===m)return;
+  if(state.example){loadEx(m);return;}
+  state.mode=m;
+  state.rows.forEach(function(r){
+    var e=function(s){return String(s).trim()==='';};
+    if(m==='pert'&&e(r.a)&&e(r.m)&&e(r.b)&&!e(r.dur)){r.a=r.m=r.b=String(r.dur);}
+    if(m==='cpm'&&e(r.dur)&&!e(r.a)&&!e(r.m)&&!e(r.b)){
+      var a=Number(r.a),mm=Number(r.m),b=Number(r.b);
+      if(isFinite(a+mm+b))r.dur=String(Math.round((a+4*mm+b)/6*100)/100);
+    }
+  });
+  renderRows();update();
+}
+$('#m-cpm').addEventListener('click',function(){setMode('cpm');});
+$('#m-pert').addEventListener('click',function(){setMode('pert');});
 $('#b-add').addEventListener('click',addRow);
-$('#b-ex').addEventListener('click',function(){state.rows=exRows();state.unit='días hábiles';state.deadline='';state.example=true;$('#in-unit').value=state.unit;$('#in-deadline').value='';renderRows();update();});
+$('#b-ex').addEventListener('click',function(){loadEx(state.mode);});
 $('#b-clear').addEventListener('click',function(){state.rows=[mk('A','','','')];state.deadline='';state.example=false;$('#in-deadline').value='';renderRows();update();});
 $('#in-unit').addEventListener('input',function(e){state.unit=e.target.value;update();});
 $('#in-deadline').addEventListener('input',function(e){state.deadline=e.target.value;update();});
+$('#in-ts').addEventListener('input',function(e){state.pertTs=e.target.value;update();});
+$('#in-p').addEventListener('input',function(e){state.pertP=e.target.value;update();});
 $('#b-copy').addEventListener('click',function(){
   if(!lastRes||!lastRes.ok)return;
-  var lines=[['ID','Descripción','Dur','IT','TT','CT','FT','HT','HL','Crítica'].join('\t')];
-  lastRes.acts.forEach(function(a){lines.push([a.id,a.name,fmt(a.dur),fmt(a.IT),fmt(a.TT),fmt(a.CT),fmt(a.FT),fmt(a.HT),fmt(a.HL),a.crit?'Sí':'No'].join('\t'));});
+  var isP=state.mode==='pert';
+  var lines=[(isP?['ID','Descripción','a','m','b','te','σ²','IT','TT','CT','FT','HT','HL','Crítica']:['ID','Descripción','Dur','IT','TT','CT','FT','HT','HL','Crítica']).join('\t')];
+  lastRes.acts.forEach(function(a){
+    var head=isP?[a.id,a.name,fmt(a.a),fmt(a.m),fmt(a.b),fmt(a.dur),fmt(a.vr)]:[a.id,a.name,fmt(a.dur)];
+    lines.push(head.concat([fmt(a.IT),fmt(a.TT),fmt(a.CT),fmt(a.FT),fmt(a.HT),fmt(a.HL),a.crit?'Sí':'No']).join('\t'));
+  });
+  if(isP&&lastRes.pert){lines.push('');lines.push(['TE',fmt(lastRes.TE)].join('\t'));lines.push(['Varianza ruta crítica',fmt(lastRes.pert.variance)].join('\t'));lines.push(['Desviación estándar',fmt(lastRes.pert.sd)].join('\t'));}
   var txt=lines.join('\n'),btn=$('#b-copy');
   function done(ok){btn.textContent=ok?'Copiado':'No se pudo copiar';setTimeout(function(){btn.textContent='Copiar tabla';},1600);}
   function fallback(){
@@ -688,8 +955,7 @@ $('#b-copy').addEventListener('click',function(){
   }catch(err){fallback();}
 });
 
-$('#in-unit').value=state.unit;
-$('#in-deadline').value=state.deadline;
+syncInputs();
 renderRows();
 update();
 })();
