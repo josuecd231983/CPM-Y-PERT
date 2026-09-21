@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ruta Crítica CPM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#EDF1F4;
+  --surface:#FFFFFF;
+  --surface-2:#F5F8FA;
+  --ink:#13202B;
+  --muted:#586977;
+  --line:#D0D9E0;
+  --line-strong:#8FA1AF;
+  --accent:#1D5E8C;
+  --accent-soft:#DCEBF5;
+  --crit:#C6301D;
+  --crit-soft:#FBE7E3;
+  --ok:#2E7D5A;
+  --ok-soft:#DFF1E8;
+  --warn:#8A5A00;
+  --warn-soft:#FFF1D0;
+  --font:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-head:"IBM Plex Sans Condensed","IBM Plex Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E161C;--surface:#152029;--surface-2:#1B2833;--ink:#E5ECF1;--muted:#98A9B6;
+    --line:#2A3947;--line-strong:#5F7486;--accent:#6DB3E4;--accent-soft:#1B3447;
+    --crit:#FF7A66;--crit-soft:#3B1F1B;--ok:#5FCB9A;--ok-soft:#173428;--warn:#F2C05C;--warn-soft:#35290F;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E161C;--surface:#152029;--surface-2:#1B2833;--ink:#E5ECF1;--muted:#98A9B6;
+  --line:#2A3947;--line-strong:#5F7486;--accent:#6DB3E4;--accent-soft:#1B3447;
+  --crit:#FF7A66;--crit-soft:#3B1F1B;--ok:#5FCB9A;--ok-soft:#173428;--warn:#F2C05C;--warn-soft:#35290F;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.5;padding-inline:16px;padding-block:24px 48px}
+.app{max-width:1120px;margin-inline:auto;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{font-family:var(--font-head);margin:0;text-wrap:balance;letter-spacing:.005em}
+.eyebrow{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0 0 4px}
+h1{font-size:clamp(28px,5vw,40px);font-weight:700;line-height:1.1}
+.lede{color:var(--muted);max-width:68ch;margin:8px 0 0}
+h2{font-size:20px;font-weight:600}
+h3{font-size:15px;font-weight:600}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:18px}
+.card-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;margin-bottom:14px}
+.card-head p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.tools{display:flex;flex-wrap:wrap;gap:8px}
+button{font:inherit;font-size:13px;font-weight:500;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);border-radius:4px;padding:7px 12px;cursor:pointer}
+button:hover{background:var(--surface-2)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+:root[data-theme="dark"] button.primary{color:#0E161C}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) button.primary{color:#0E161C}}
+button.primary:hover{filter:brightness(1.08);background:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:6px 8px;width:100%;min-width:0}
+input:hover{border-color:var(--line-strong)}
+.opts{display:flex;flex-wrap:wrap;gap:12px 20px;margin-bottom:14px}
+.opts label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);font-weight:500}
+.opts input{width:190px;color:var(--ink)}
+.scroll{overflow-x:auto}
+.rows{min-width:600px;display:flex;flex-direction:column;gap:6px}
+.row,.rows-head{display:grid;grid-template-columns:76px minmax(140px,1.3fr) 104px minmax(140px,1.2fr) 36px;gap:8px;align-items:center}
+.rows-head{font-size:11.5px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;padding-bottom:2px}
+.row input[data-f="id"],.row input[data-f="dur"],.row input[data-f="pred"]{font-family:var(--mono)}
+.row input[data-f="id"]{font-weight:600;text-align:center}
+.row.bad input{border-color:var(--crit);background:var(--crit-soft)}
+.del{padding:0;height:32px;width:32px;font-size:18px;line-height:1;color:var(--muted)}
+.hint{margin:10px 0 0;color:var(--muted);font-size:12.5px}
+.badge{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--accent-soft);color:var(--accent);vertical-align:middle}
+.msgs{display:flex;flex-direction:column;gap:8px}
+.msg{border-radius:4px;padding:9px 12px;font-size:13px;border:1px solid}
+.msg ul{margin:4px 0 0;padding-left:18px}
+.msg.err{background:var(--crit-soft);border-color:var(--crit);color:var(--ink)}
+.msg.err b{color:var(--crit)}
+.msg.warn{background:var(--warn-soft);border-color:var(--warn);color:var(--ink)}
+.msg.info{background:var(--accent-soft);border-color:var(--accent);color:var(--ink)}
+.summary{display:grid;grid-template-columns:minmax(200px,.7fr) minmax(0,2fr);gap:0;border:1px solid var(--line);border-radius:6px;background:var(--surface);overflow:hidden}
+.sum-te{padding:18px;border-right:1px solid var(--line);background:var(--surface-2)}
+.sum-te .lbl,.sum-rc .lbl{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0}
+.big{font-family:var(--mono);font-size:44px;font-weight:600;line-height:1.1;margin:4px 0 0}
+.unit{color:var(--muted);font-size:13px}
+.sum-rc{padding:18px;display:flex;flex-direction:column;gap:10px}
+.paths{display:flex;flex-direction:column;gap:6px}
+.path{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;font-family:var(--mono);font-size:15px;font-weight:600;color:var(--crit)}
+.path .sep{color:var(--muted);font-weight:400}
+.slk{color:var(--muted);font-size:13px;margin:0}
+.slk b{font-family:var(--mono);color:var(--ink);font-weight:500}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:13.5px}
+th,td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+th{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--surface-2);position:sticky;top:0;cursor:help}
+th:first-child,td:first-child,th.l,td.l{text-align:left}
+td{font-family:var(--mono)}
+td.l{font-family:var(--font)}
+tr.crit td{background:var(--crit-soft)}
+tr.crit td:first-child{font-weight:700;color:var(--crit)}
+.pill{display:inline-block;font-family:var(--font);font-size:11.5px;font-weight:600;padding:1px 8px;border-radius:99px}
+.pill.c{background:var(--crit);color:#fff}
+:root[data-theme="dark"] .pill.c{color:#1a0b08}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .pill.c{color:#1a0b08}}
+.pill.s{background:var(--ok-soft);color:var(--ok)}
+.tp{font-family:var(--font);font-size:12px;color:var(--muted)}
+.note{font-size:12.5px;color:var(--muted);margin:10px 0 0}
+.legend{display:flex;flex-wrap:wrap;gap:16px 28px;align-items:center;margin-bottom:12px;font-size:12.5px;color:var(--muted)}
+.lnode{display:grid;grid-template-columns:repeat(3,64px);grid-template-rows:24px 28px 24px;border:1.5px solid var(--line-strong);border-radius:3px;background:var(--surface);font-family:var(--mono);font-size:11px;color:var(--ink);flex:none}
+.lnode span{display:flex;align-items:center;justify-content:center;border:.5px solid var(--line)}
+.lnode .desc{font-family:var(--font);font-size:10.5px}
+.lkey{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:12.5px}
+.lkey b{font-family:var(--mono);color:var(--ink);font-weight:600}
+.lkeys{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:2px 24px;flex:1;min-width:240px}
+.sw{display:inline-flex;align-items:center;gap:6px}
+.sw i{display:inline-block;width:22px;height:0;border-top:3px solid var(--crit)}
+.sw i.n{border-top:2px solid var(--line-strong)}
+.diagram svg,.gantt svg{display:block}
+svg text{font-family:var(--mono);fill:var(--ink)}
+.n-box{fill:var(--surface);stroke:var(--line-strong);stroke-width:1.4}
+.n-line{stroke:var(--line);stroke-width:1}
+.n-head{fill:var(--surface-2)}
+.crit .n-box{stroke:var(--crit);stroke-width:2.2}
+.crit .n-head{fill:var(--crit-soft)}
+.crit .n-line{stroke:var(--crit);opacity:.45}
+.t-id{font-size:14px;font-weight:600;font-family:var(--font)}
+.crit .t-id{fill:var(--crit)}
+.t-n{font-size:12.5px;font-weight:500}
+.t-d{font-size:11px;font-family:var(--font);fill:var(--muted)}
+.t-s{font-size:12.5px;font-weight:600;fill:var(--ok)}
+.crit .t-s{fill:var(--crit)}
+.t-hl{font-size:12.5px;font-weight:500;fill:var(--muted)}
+.e-line{fill:none;stroke:var(--line-strong);stroke-width:1.5}
+.e-crit{fill:none;stroke:var(--crit);stroke-width:2.6}
+.arr{fill:var(--line-strong)}
+.arr-c{fill:var(--crit)}
+.g-grid{stroke:var(--line);stroke-width:1}
+.g-axis{font-size:11px;fill:var(--muted)}
+.g-lbl{font-size:12px;font-family:var(--font)}
+.g-bar{fill:var(--accent)}
+.g-bar.c{fill:var(--crit)}
+.g-slack{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1;stroke-dasharray:3 2}
+.g-slack.c{fill:none;stroke:none}
+.g-te{stroke:var(--ink);stroke-width:1.2;stroke-dasharray:4 3}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.steps li{border-left:3px solid var(--line-strong);padding:2px 0 2px 10px;font-size:13px}
+.steps li.c{border-left-color:var(--crit)}
+.steps .h{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px}
+.steps .id{font-weight:700;font-size:14px}
+.steps .tag{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.steps code{font-family:var(--mono);font-size:12.5px;display:block;color:var(--ink)}
+.steps .ctl{color:var(--muted);font-size:12px}
+.steps-cap{margin:0 0 10px;color:var(--muted);font-size:13px}
+details{border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+summary{cursor:pointer;padding:12px 18px;font-family:var(--font-head);font-weight:600;font-size:16px}
+details>div{padding:2px 18px 16px}
+details ol,details ul{margin:6px 0 0;padding-left:20px}
+details li{margin:3px 0}
+details p{margin:8px 0 0}
+.rules3{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.foot{font-size:12px;color:var(--muted);line-height:1.6}
+.empty{padding:26px;text-align:center;color:var(--muted);border:1px dashed var(--line-strong);border-radius:6px}
+@media (max-width:760px){
+  .summary{grid-template-columns:1fr}
+  .sum-te{border-right:0;border-bottom:1px solid var(--line)}
+  .two,.rules3{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:no-preference){button{transition:background .12s,filter .12s}}
+</style>
+<meta name="description" content="Calculadora de ruta crítica por el método CPM: pase hacia adelante, pase hacia atrás, holguras y diagrama de red (Gray y Larson, cap. 6).">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231D5E8C'/%3E%3Cpath d='M5 22h6v-6h6v-6h10' fill='none' stroke='%23fff' stroke-width='3' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>:root{color-scheme:light dark}:root[data-theme="light"]{color-scheme:light}:root[data-theme="dark"]{color-scheme:dark}html{-webkit-text-size-adjust:100%}body{margin:0}[hidden]{display:none!important}</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <p class="eyebrow">Gray &amp; Larson · Administración de proyectos · Capítulo 6</p>
+    <h1>Ruta Crítica CPM</h1>
+    <p class="lede">Captura las actividades con su duración y sus predecesoras. La aplicación ejecuta el pase hacia adelante (IT, TT), el pase hacia atrás (CT, FT), calcula las holguras y señala la ruta crítica, con el procedimiento explicado paso a paso.</p>
+  </header>
+
+  <section class="card" aria-labelledby="h-datos">
+    <div class="card-head">
+      <div>
+        <h2 id="h-datos">Actividades del proyecto <span class="badge" id="exbadge">Ejemplo: Koll Business Center</span></h2>
+        <p>Los resultados se recalculan al escribir. Predecesoras: identificadores separados por coma.</p>
+      </div>
+      <div class="tools">
+        <button type="button" id="b-add" class="primary">+ Agregar actividad</button>
+        <button type="button" id="b-ex">Cargar ejemplo Koll</button>
+        <button type="button" id="b-clear">Limpiar todo</button>
+      </div>
+    </div>
+    <div class="opts">
+      <label for="in-unit">Unidad de tiempo
+        <input id="in-unit" type="text" value="días hábiles" autocomplete="off">
+      </label>
+      <label for="in-deadline">Plazo límite del proyecto (opcional)
+        <input id="in-deadline" type="number" min="0" step="any" inputmode="decimal" placeholder="Vacío = usar TE" autocomplete="off">
+      </label>
+    </div>
+    <div class="scroll">
+      <div class="rows-head" aria-hidden="true"><span>ID</span><span>Descripción</span><span>Duración</span><span>Predecesoras</span><span></span></div>
+      <div class="rows" id="rows"></div>
+    </div>
+    <p class="hint" id="ex-hint">Duraciones de la tabla 6.2 del libro (figuras 6.5 a 6.7), en días hábiles. La descripción es opcional.</p>
+  </section>
+
+  <div class="msgs" id="msgs" aria-live="polite"></div>
+
+  <div id="results" style="display:flex;flex-direction:column;gap:20px">
+    <section class="summary" id="summary" aria-label="Resumen"></section>
+
+    <section class="card" aria-labelledby="h-tabla">
+      <div class="card-head">
+        <div>
+          <h2 id="h-tabla">Tabla de tiempos</h2>
+          <p>Las actividades críticas tienen la holgura total mínima (0 cuando el plazo es igual a TE).</p>
+        </div>
+        <div class="tools"><button type="button" id="b-copy">Copiar tabla</button></div>
+      </div>
+      <div class="scroll"><div id="tbl"></div></div>
+      <p class="note">HT = CT − IT = FT − TT (holgura total). HL = menor IT de las sucesoras − TT (holgura libre; en actividades finales se mide contra el fin del proyecto).</p>
+    </section>
+
+    <section class="card" aria-labelledby="h-red">
+      <div class="card-head">
+        <div>
+          <h2 id="h-red">Diagrama de red (actividad en nodo)</h2>
+          <p>La red fluye de izquierda a derecha; en rojo, la ruta crítica.</p>
+        </div>
+      </div>
+      <div class="legend">
+        <div class="lnode" aria-hidden="true"><span>IT</span><span>ID</span><span>TT</span><span>HT</span><span class="desc">Descripción</span><span>HL</span><span>CT</span><span>Dur</span><span>FT</span></div>
+        <div class="lkeys">
+          <div class="lkey"><b>IT</b><span>Inicio temprano</span><b>TT</b><span>Terminación temprana</span><b>HT</b><span>Holgura total</span></div>
+          <div class="lkey"><b>CT</b><span>Comienzo tardío</span><b>FT</b><span>Final tardío</span><b>HL</b><span>Holgura libre</span></div>
+          <div class="lkey"><b>Dur</b><span>Duración de la actividad</span></div>
+          <div class="lkey"><span class="sw"><i></i>Ruta crítica</span><span></span><span class="sw"><i class="n"></i>Precedencia</span><span></span></div>
+        </div>
+      </div>
+      <div class="scroll diagram" id="diagram"></div>
+    </section>
+
+    <section class="card" aria-labelledby="h-gantt">
+      <div class="card-head">
+        <div>
+          <h2 id="h-gantt">Programa al inicio temprano</h2>
+          <p>Barra sólida: duración desde IT hasta TT. Zona punteada: holgura total disponible antes de retrasar el proyecto.</p>
+        </div>
+      </div>
+      <div class="scroll gantt" id="gantt"></div>
+    </section>
+
+    <section class="card" aria-labelledby="h-pasos">
+      <div class="card-head">
+        <div>
+          <h2 id="h-pasos">Procedimiento paso a paso</h2>
+          <p>Cada renglón reproduce el razonamiento del libro con los números de este proyecto.</p>
+        </div>
+      </div>
+      <div class="two">
+        <div>
+          <h3>Pase hacia adelante · tiempos tempranos</h3>
+          <p class="steps-cap">IT + Dur = TT. En una actividad de fusión, el IT es el mayor TT de sus predecesoras.</p>
+          <ol class="steps" id="steps-f"></ol>
+        </div>
+        <div>
+          <h3>Pase hacia atrás · tiempos tardíos</h3>
+          <p class="steps-cap" id="cap-b">FT − Dur = CT. En una actividad explosiva, el FT es el menor CT de sus sucesoras.</p>
+          <ol class="steps" id="steps-b"></ol>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <details>
+    <summary>Reglas del pase hacia adelante y hacia atrás</summary>
+    <div>
+      <div class="rules3">
+        <div>
+          <h3>Pase hacia adelante</h3>
+          <ol>
+            <li>Se <em>añaden</em> tiempos de actividad a lo largo de cada ruta: IT + Dur = TT.</li>
+            <li>La terminación temprana se lleva a la siguiente actividad, donde se convierte en su inicio temprano (IT), a menos que…</li>
+            <li>…la siguiente sea una actividad de <em>fusión</em> (varias predecesoras): se elige el TT <em>más grande</em> de todas sus predecesoras inmediatas.</li>
+          </ol>
+        </div>
+        <div>
+          <h3>Pase hacia atrás</h3>
+          <ol>
+            <li>Se <em>resta</em> el tiempo de actividad en cada ruta, empezando por la actividad final: FT − Dur = CT.</li>
+            <li>El CT se aplica a la predecesora inmediata como su FT, a menos que…</li>
+            <li>…la siguiente sea una actividad <em>explosiva</em> (varias sucesoras): se elige el CT <em>más pequeño</em> de todas sus sucesoras inmediatas.</li>
+          </ol>
+        </div>
+      </div>
+      <p><b>Holgura total</b> HT = CT − IT = FT − TT. <b>Ruta crítica</b>: cadena de actividades con la holgura total mínima; su longitud es la duración del proyecto (TE).</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>Reglas básicas para desarrollar redes de proyecto</summary>
+    <div>
+      <ol>
+        <li>Por lo general, las redes fluyen de izquierda a derecha.</li>
+        <li>Una actividad no puede comenzar sino hasta que se hayan concluido todas las actividades precedentes conectadas.</li>
+        <li>Las flechas señalan precedencia y flujo; pueden atravesarse unas a otras.</li>
+        <li>Cada actividad debe contar con un número único de identificación. <em>(La aplicación lo valida.)</em></li>
+        <li>El identificador de la actividad debe ser mayor que el de la actividad que le precede. <em>(Se muestra como observación.)</em></li>
+        <li>No se permiten circuitos cerrados: no debe hacerse reciclado a través de un conjunto de actividades. <em>(La aplicación lo detecta.)</em></li>
+        <li>No se permiten afirmaciones condicionantes (si tiene éxito, haga algo; si no, no haga nada).</li>
+        <li>Cuando hay muchos comienzos puede usarse un nodo común de inicio, y un solo final del proyecto para indicar el final con claridad. <em>(Se avisa cuando hay varios inicios o finales.)</em></li>
+      </ol>
+      <p><b>Actividad explosiva:</b> antecede a dos o más actividades, que pueden comenzar al mismo tiempo cuando ella termina. <b>Actividad de fusión:</b> la preceden dos o más; todas deben terminar antes de que pueda comenzar.</p>
+    </div>
+  </details>
+
+  <footer class="foot">
+    Referencia: Gray, C. F. y Larson, E. W., <i>Administración de proyectos</i>, 4.ª ed., McGraw-Hill, cap. 6 (pase hacia adelante, pase hacia atrás y holgura; ejemplo Koll Business Center). Origen del método: Kelley, J. E. y Walker, M. R. (1959), «Critical-path planning and scheduling», <i>Proceedings of the Eastern Joint Computer Conference</i>, pp. 160–173. Los datos se guardan sólo en este navegador.
+  </footer>
+</div>
+
+<script>
+(function(){
+'use strict';
+var KEY='cpm-gray-larson-v1', EPS=1e-7;
+var EX=[['A','',5,''],['B','',15,'A'],['C','',10,'A'],['D','',5,'A'],['E','',15,'B, C'],['F','',10,'B, C, D'],['G','',170,'F'],['H','',35,'E, G']];
+var uid=0;
+function mk(id,name,dur,pred){return {uid:++uid,id:id,name:name,dur:String(dur),pred:pred};}
+function exRows(){return EX.map(function(r){return mk(r[0],r[1],r[2],r[3]);});}
+var state={unit:'días hábiles',deadline:'',example:true,rows:exRows()};
+try{
+  var raw=localStorage.getItem(KEY);
+  if(raw){
+    var p=JSON.parse(raw);
+    if(p&&Array.isArray(p.rows)){
+      state.unit=typeof p.unit==='string'?p.unit:state.unit;
+      state.deadline=typeof p.deadline==='string'?p.deadline:'';
+      state.example=!!p.example;
+      state.rows=p.rows.map(function(r){return mk(String(r.id||''),String(r.name||''),String(r.dur==null?'':r.dur),String(r.pred||''));});
+    }
+  }
+}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({unit:state.unit,deadline:state.deadline,example:state.example,rows:state.rows}));}catch(e){}}
+
+var $=function(s){return document.querySelector(s);};
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function r6(x){return Math.round(x*1e6)/1e6;}
+function fmt(x){
+  if(x==null||!isFinite(x))return '–';
+  var v=r6(x); var s=String(Number.isInteger(v)?v:parseFloat(v.toFixed(2)));
+  return s.replace('-','−');
+}
+function trunc(s,n){s=String(s);return s.length>n?s.slice(0,n-1)+'…':s;}
+function letters(k){var s='';k++;while(k>0){var m=(k-1)%26;s=String.fromCharCode(65+m)+s;k=Math.floor((k-1)/26);}return s;}
+function nextId(){
+  var used={};state.rows.forEach(function(r){used[r.id.trim().toLowerCase()]=1;});
+  for(var k=0;k<2000;k++){var c=letters(k);if(!used[c.toLowerCase()])return c;}
+  return '';
+}
+
+/* ------------------------------ motor CPM ------------------------------ */
+function analyze(){
+  var errors=[],notes=[],acts=[],byKey={};
+  state.rows.forEach(function(r,ri){
+    var id=r.id.trim(),pred=r.pred.trim(),durS=String(r.dur).trim(),name=r.name.trim();
+    if(!id&&!pred&&!durS&&!name)return;
+    if(!id){errors.push({uid:r.uid,msg:'Fila '+(ri+1)+': falta el identificador de la actividad.'});return;}
+    var key=id.toLowerCase();
+    if(Object.prototype.hasOwnProperty.call(byKey,key)){errors.push({uid:r.uid,msg:'El identificador «'+esc(id)+'» está repetido; cada actividad debe tener uno único (regla 4).'});return;}
+    var dur=durS===''?NaN:Number(durS);
+    var okDur=isFinite(dur)&&dur>=0;
+    if(!okDur)errors.push({uid:r.uid,msg:'La actividad '+esc(id)+' necesita una duración numérica mayor o igual a 0.'});
+    byKey[key]=acts.length;
+    acts.push({uid:r.uid,id:id,key:key,name:name,dur:okDur?dur:0,tokens:pred?pred.split(/[,;\s]+/).filter(Boolean):[]});
+  });
+  acts.forEach(function(a){
+    var seen={};a.preds=[];
+    a.tokens.forEach(function(t){
+      var k=t.toLowerCase();
+      if(k===a.key){errors.push({uid:a.uid,msg:'La actividad '+esc(a.id)+' no puede ser predecesora de sí misma.'});return;}
+      if(!Object.prototype.hasOwnProperty.call(byKey,k)){errors.push({uid:a.uid,msg:'La predecesora «'+esc(t)+'» de la actividad '+esc(a.id)+' no existe en la tabla.'});return;}
+      var j=byKey[k];if(!seen[j]){seen[j]=1;a.preds.push(j);}
+    });
+  });
+  if(!acts.length)return {empty:true,errors:errors};
+  if(errors.length)return {errors:errors};
+  var n=acts.length;
+  acts.forEach(function(a){a.succs=[];});
+  acts.forEach(function(a,i){a.preds.forEach(function(p){acts[p].succs.push(i);});});
+  var indeg=acts.map(function(a){return a.preds.length;}),queue=[],order=[];
+  indeg.forEach(function(d,i){if(d===0)queue.push(i);});
+  while(queue.length){var u=queue.shift();order.push(u);acts[u].succs.forEach(function(v){if(--indeg[v]===0)queue.push(v);});}
+  if(order.length<n){
+    var left=acts.filter(function(a,i){return order.indexOf(i)<0;}).map(function(a){return a.id;});
+    errors.push({msg:'Se detectó un circuito cerrado entre las actividades '+esc(left.join(', '))+'. Las redes de proyecto no permiten ciclos (regla 6): revisa las predecesoras.'});
+    return {errors:errors};
+  }
+  /* pase hacia adelante */
+  order.forEach(function(i){
+    var a=acts[i];
+    a.IT=a.preds.length?Math.max.apply(null,a.preds.map(function(p){return acts[p].TT;})):0;
+    a.TT=r6(a.IT+a.dur);a.IT=r6(a.IT);
+  });
+  var TE=Math.max.apply(null,acts.map(function(a){return a.TT;}));
+  var dl=state.deadline.trim(),D=TE;
+  if(dl!==''&&isFinite(Number(dl))&&Number(dl)>=0)D=Number(dl);
+  /* pase hacia atrás */
+  order.slice().reverse().forEach(function(i){
+    var a=acts[i];
+    a.FT=a.succs.length?Math.min.apply(null,a.succs.map(function(s){return acts[s].CT;})):D;
+    a.CT=r6(a.FT-a.dur);a.FT=r6(a.FT);
+    a.HT=r6(a.CT-a.IT);
+    a.HL=r6((a.succs.length?Math.min.apply(null,a.succs.map(function(s){return acts[s].IT;})):D)-a.TT);
+  });
+  var minHT=Math.min.apply(null,acts.map(function(a){return a.HT;}));
+  acts.forEach(function(a){a.crit=a.HT<=minHT+EPS;});
+  function tight(u,v){return acts[u].crit&&acts[v].crit&&Math.abs(acts[v].IT-acts[u].TT)<EPS;}
+  var starts=[];
+  acts.forEach(function(a,i){if(a.crit&&!a.preds.some(function(p){return tight(p,i);}))starts.push(i);});
+  var paths=[];
+  function walk(i,path){
+    path.push(i);
+    var nx=acts[i].succs.filter(function(s){return tight(i,s);});
+    if(!nx.length)paths.push(path.slice());
+    else if(paths.length<50)nx.forEach(function(s){walk(s,path);});
+    path.pop();
+  }
+  starts.forEach(function(s){walk(s,[]);});
+  /* observaciones (reglas 5 y 8) */
+  if(D<TE-EPS)notes.push({t:'warn',msg:'El plazo límite ('+fmt(D)+') es menor que la duración calculada TE ('+fmt(TE)+'): las actividades críticas quedan con holgura negativa de '+fmt(D-TE)+' y hace falta acortar la ruta crítica.'});
+  else if(D>TE+EPS)notes.push({t:'info',msg:'El plazo límite ('+fmt(D)+') es mayor que TE ('+fmt(TE)+'): todas las actividades ganan '+fmt(D-TE)+' de holgura y las críticas son las de holgura mínima.'});
+  var srcs=acts.filter(function(a){return !a.preds.length;}).map(function(a){return a.id;});
+  var ends=acts.filter(function(a){return !a.succs.length;}).map(function(a){return a.id;});
+  if(srcs.length>1)notes.push({t:'info',msg:'Hay '+srcs.length+' actividades iniciales ('+esc(srcs.join(', '))+'). El libro sugiere un nodo común de inicio para indicar con claridad de dónde parte el proyecto (regla 8); el cálculo no cambia.'});
+  if(ends.length>1)notes.push({t:'info',msg:'Hay '+ends.length+' actividades finales ('+esc(ends.join(', '))+'). El libro sugiere un solo final del proyecto (regla 8); para el pase hacia atrás todas usan el mismo FT.'});
+  var r5=[];
+  acts.forEach(function(a){a.preds.forEach(function(p){
+    if(acts[p].id.localeCompare(a.id,'es',{numeric:true,sensitivity:'base'})>=0)r5.push(esc(a.id)+' respecto a '+esc(acts[p].id));
+  });});
+  if(r5.length)notes.push({t:'info',msg:'Regla 5: el identificador de una actividad debería ser mayor que el de sus predecesoras. Revisa: '+r5.slice(0,4).join('; ')+(r5.length>4?' y '+(r5.length-4)+' más':'')+'.'});
+  return {ok:true,acts:acts,order:order,TE:TE,D:D,minHT:minHT,paths:paths,notes:notes};
+}
+
+/* ------------------------------ render ------------------------------ */
+var lastRes=null;
+function tipo(a){
+  var t=[];
+  if(!a.preds.length)t.push('inicial');
+  if(a.preds.length>1)t.push('fusión');
+  if(a.succs.length>1)t.push('explosiva');
+  if(!a.succs.length)t.push('final');
+  return t.join(' · ');
+}
+function renderRows(){
+  $('#rows').innerHTML=state.rows.map(function(r,i){
+    var u=r.uid;
+    return '<div class="row" data-uid="'+u+'">'+
+      '<input id="id-'+u+'" data-f="id" value="'+esc(r.id)+'" aria-label="Identificador, fila '+(i+1)+'" autocomplete="off" maxlength="12">'+
+      '<input id="nm-'+u+'" data-f="name" value="'+esc(r.name)+'" aria-label="Descripción, fila '+(i+1)+'" placeholder="Descripción (opcional)" autocomplete="off">'+
+      '<input id="du-'+u+'" data-f="dur" type="number" min="0" step="any" inputmode="decimal" value="'+esc(r.dur)+'" aria-label="Duración, fila '+(i+1)+'" placeholder="0" autocomplete="off">'+
+      '<input id="pr-'+u+'" data-f="pred" value="'+esc(r.pred)+'" aria-label="Predecesoras, fila '+(i+1)+'" placeholder="—" autocomplete="off">'+
+      '<button type="button" class="del" data-del="'+u+'" aria-label="Eliminar fila '+(i+1)+'" title="Eliminar">×</button>'+
+    '</div>';
+  }).join('');
+}
+function renderMsgs(res){
+  var h='';
+  if(res.errors&&res.errors.length){
+    h+='<div class="msg err"><b>Revisa los datos antes de calcular:</b><ul>'+res.errors.map(function(e){return '<li>'+e.msg+'</li>';}).join('')+'</ul></div>';
+  }else if(res.empty){
+    h+='<div class="msg info">Agrega al menos una actividad con su duración para calcular la ruta crítica.</div>';
+  }
+  if(res.ok)res.notes.forEach(function(n){h+='<div class="msg '+n.t+'">'+n.msg+'</div>';});
+  $('#msgs').innerHTML=h;
+  var bad={};(res.errors||[]).forEach(function(e){if(e.uid)bad[e.uid]=1;});
+  document.querySelectorAll('.row').forEach(function(el){el.classList.toggle('bad',!!bad[el.dataset.uid]);});
+}
+function renderSummary(res){
+  var u=esc(state.unit||'');
+  var slack=res.acts.filter(function(a){return !a.crit;}).sort(function(a,b){return a.HT-b.HT;});
+  var pathsH=res.paths.map(function(p){
+    return '<div class="path">'+p.map(function(i,k){return (k?'<span class="sep">→</span>':'')+'<span>'+esc(res.acts[i].id)+'</span>';}).join('')+'</div>';
+  }).join('');
+  $('#summary').innerHTML=
+    '<div class="sum-te"><p class="lbl">Duración del proyecto (TE)</p><p class="big">'+fmt(res.TE)+'</p><span class="unit">'+u+'</span></div>'+
+    '<div class="sum-rc"><div><p class="lbl">Ruta crítica'+(res.paths.length>1?' · '+res.paths.length+' rutas':'')+'</p><div class="paths">'+pathsH+'</div></div>'+
+    '<p class="slk">'+(slack.length?'Con holgura: '+slack.map(function(a){return esc(a.id)+' <b>('+fmt(a.HT)+')</b>';}).join(' · ')+'.':'Todas las actividades son críticas.')+'</p></div>';
+}
+function renderTable(res){
+  var h='<table><thead><tr><th title="Actividad">ID</th><th class="l" title="Descripción">Descripción</th><th title="Duración">Dur</th><th title="Inicio temprano">IT</th><th title="Terminación temprana">TT</th><th title="Comienzo tardío">CT</th><th title="Final tardío">FT</th><th title="Holgura total">HT</th><th title="Holgura libre">HL</th><th class="l" title="Tipo de nodo">Tipo</th><th class="l">Ruta</th></tr></thead><tbody>';
+  res.acts.forEach(function(a){
+    h+='<tr class="'+(a.crit?'crit':'')+'"><td>'+esc(a.id)+'</td><td class="l">'+esc(a.name)+'</td><td>'+fmt(a.dur)+'</td><td>'+fmt(a.IT)+'</td><td>'+fmt(a.TT)+'</td><td>'+fmt(a.CT)+'</td><td>'+fmt(a.FT)+'</td><td><b>'+fmt(a.HT)+'</b></td><td>'+fmt(a.HL)+'</td><td class="l tp">'+tipo(a)+'</td><td class="l"><span class="pill '+(a.crit?'c':'s')+'">'+(a.crit?'Crítica':'Con holgura')+'</span></td></tr>';
+  });
+  $('#tbl').innerHTML=h+'</tbody></table>';
+}
+
+/* diagrama de red */
+function renderDiagram(res){
+  var acts=res.acts,n=acts.length,order=res.order;
+  var NW=204,NH=90,DH=16,GX=72,GY=22,PAD=20;
+  var level=new Array(n).fill(0);
+  order.forEach(function(i){var a=acts[i];level[i]=a.preds.length?1+Math.max.apply(null,a.preds.map(function(p){return level[p];})):0;});
+  var L=Math.max.apply(null,level)+1;
+  var cols=[];for(var c=0;c<L;c++)cols.push([]);
+  var real=acts.map(function(a,i){var it={real:true,i:i,level:level[i],up:[],down:[]};cols[level[i]].push(it);return it;});
+  var edges=[];
+  acts.forEach(function(v,vi){v.preds.forEach(function(ui){
+    var prev=real[ui],chain=[];
+    for(var l=level[ui]+1;l<level[vi];l++){var d={real:false,level:l,up:[],down:[]};cols[l].push(d);chain.push(d);prev.down.push(d);d.up.push(prev);prev=d;}
+    prev.down.push(real[vi]);real[vi].up.push(prev);
+    edges.push({ui:ui,vi:vi,chain:chain});
+  });});
+  function setPos(){cols.forEach(function(col){col.forEach(function(it,k){it.pos=k;});});}
+  function avg(a){return a.reduce(function(s,x){return s+x;},0)/a.length;}
+  setPos();
+  for(var t=0;t<6;t++){
+    for(var c1=1;c1<L;c1++){cols[c1].forEach(function(x){x.bc=x.up.length?avg(x.up.map(function(u){return u.pos;})):x.pos;});cols[c1].sort(function(a,b){return a.bc-b.bc||a.pos-b.pos;});setPos();}
+    for(var c2=L-2;c2>=0;c2--){cols[c2].forEach(function(x){x.bc=x.down.length?avg(x.down.map(function(u){return u.pos;})):x.pos;});cols[c2].sort(function(a,b){return a.bc-b.bc||a.pos-b.pos;});setPos();}
+  }
+  function slot(it){return it.real?NH:DH;}
+  var colH=cols.map(function(col){return col.reduce(function(s,it){return s+slot(it);},0)+GY*Math.max(0,col.length-1);});
+  var maxH=Math.max.apply(null,colH);
+  cols.forEach(function(col,c){
+    var y=PAD+(maxH-colH[c])/2;
+    col.forEach(function(it){it.x=PAD+c*(NW+GX);it.y=y;it.cy=y+slot(it)/2;y+=slot(it)+GY;});
+  });
+  var W=PAD*2+L*NW+(L-1)*GX,H=PAD*2+maxH;
+  function path(pts){
+    var d='M'+pts[0][0]+','+pts[0][1];
+    for(var k=1;k<pts.length;k++){var x0=pts[k-1][0],y0=pts[k-1][1],x1=pts[k][0],y1=pts[k][1],dx=(x1-x0)/2;d+=' C'+(x0+dx)+','+y0+' '+(x1-dx)+','+y1+' '+x1+','+y1;}
+    return d;
+  }
+  var normal='',critical='';
+  edges.forEach(function(e){
+    var u=real[e.ui],v=real[e.vi];
+    var pts=[[u.x+NW,u.cy]];
+    e.chain.forEach(function(d){pts.push([d.x,d.cy]);pts.push([d.x+NW,d.cy]);});
+    pts.push([v.x-1,v.cy]);
+    var isC=acts[e.ui].crit&&acts[e.vi].crit&&Math.abs(acts[e.vi].IT-acts[e.ui].TT)<EPS;
+    var p='<path d="'+path(pts)+'" class="'+(isC?'e-crit':'e-line')+'" marker-end="url(#'+(isC?'ac':'an')+')"/>';
+    if(isC)critical+=p;else normal+=p;
+  });
+  var nodes='';
+  real.forEach(function(it){
+    var a=acts[it.i],x=it.x,y=it.y,c3=NW/3;
+    var g='<g class="'+(a.crit?'crit':'')+'" transform="translate('+x+','+y+')"><title>'+esc(a.id)+(a.name?' · '+esc(a.name):'')+' — Dur '+fmt(a.dur)+'; IT '+fmt(a.IT)+', TT '+fmt(a.TT)+', CT '+fmt(a.CT)+', FT '+fmt(a.FT)+', HT '+fmt(a.HT)+', HL '+fmt(a.HL)+'</title>'+
+      '<rect class="n-box" width="'+NW+'" height="'+NH+'" rx="3"/>'+
+      '<rect class="n-head" x="1" y="1" width="'+(NW-2)+'" height="25" rx="2"/>'+
+      '<line class="n-line" x1="0" y1="26" x2="'+NW+'" y2="26"/><line class="n-line" x1="0" y1="64" x2="'+NW+'" y2="64"/>'+
+      '<line class="n-line" x1="'+c3+'" y1="0" x2="'+c3+'" y2="90"/><line class="n-line" x1="'+2*c3+'" y1="0" x2="'+2*c3+'" y2="90"/>'+
+      '<text class="t-n" x="'+c3/2+'" y="18" text-anchor="middle">'+fmt(a.IT)+'</text>'+
+      '<text class="t-id" x="'+NW/2+'" y="18" text-anchor="middle">'+esc(trunc(a.id,7))+'</text>'+
+      '<text class="t-n" x="'+(NW-c3/2)+'" y="18" text-anchor="middle">'+fmt(a.TT)+'</text>'+
+      '<text class="t-s" x="'+c3/2+'" y="49" text-anchor="middle">'+fmt(a.HT)+'</text>'+
+      '<text class="t-d" x="'+NW/2+'" y="49" text-anchor="middle">'+esc(trunc(a.name,11))+'</text>'+
+      '<text class="t-hl" x="'+(NW-c3/2)+'" y="49" text-anchor="middle">'+fmt(a.HL)+'</text>'+
+      '<text class="t-n" x="'+c3/2+'" y="81" text-anchor="middle">'+fmt(a.CT)+'</text>'+
+      '<text class="t-n" x="'+NW/2+'" y="81" text-anchor="middle" style="font-weight:600">'+fmt(a.dur)+'</text>'+
+      '<text class="t-n" x="'+(NW-c3/2)+'" y="81" text-anchor="middle">'+fmt(a.FT)+'</text></g>';
+    nodes+=g;
+  });
+  $('#diagram').innerHTML='<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Diagrama de red del proyecto con la ruta crítica resaltada">'+
+    '<defs><marker id="an" viewBox="0 0 9 8" refX="9" refY="4" markerWidth="9" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path class="arr" d="M0,0 L9,4 L0,8 z"/></marker>'+
+    '<marker id="ac" viewBox="0 0 9 8" refX="9" refY="4" markerWidth="11" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto"><path class="arr-c" d="M0,0 L9,4 L0,8 z"/></marker></defs>'+
+    normal+critical+nodes+'</svg>';
+}
+
+/* diagrama de Gantt */
+function renderGantt(res){
+  var rows=res.acts.map(function(a,i){return {a:a,i:i};}).sort(function(p,q){return p.a.IT-q.a.IT||p.a.TT-q.a.TT||p.i-q.i;});
+  var maxT=Math.max(res.TE,res.D);if(maxT<=0)maxT=1;
+  var step=1,found=false,m=1;
+  while(!found){[1,2,5].forEach(function(s){if(!found&&maxT/(s*m)<=10){step=s*m;found=true;}});m*=10;}
+  var LW=132,RW=28,TOP=30,RH=28,IW=780,W=LW+IW+RW,H=TOP+rows.length*RH+16;
+  var sx=function(t){return LW+t/maxT*IW;};
+  var g='';
+  for(var t=0;t<=maxT+EPS;t+=step){
+    g+='<line class="g-grid" x1="'+sx(t)+'" x2="'+sx(t)+'" y1="'+(TOP-6)+'" y2="'+(H-10)+'"/><text class="g-axis" x="'+sx(t)+'" y="'+(TOP-12)+'" text-anchor="middle">'+fmt(t)+'</text>';
+  }
+  rows.forEach(function(rw,k){
+    var a=rw.a,y=TOP+k*RH;
+    g+='<text class="g-lbl" x="'+(LW-10)+'" y="'+(y+RH/2+4)+'" text-anchor="end"'+(a.crit?' style="font-weight:600;fill:var(--crit)"':'')+'>'+esc(trunc(a.id+(a.name?' · '+a.name:''),18))+'</text>';
+    if(a.HT>EPS)g+='<rect class="g-slack" x="'+sx(a.TT)+'" y="'+(y+6)+'" width="'+Math.max(0,sx(a.TT+a.HT)-sx(a.TT))+'" height="16" rx="2"/>';
+    var w=Math.max(a.dur>0?2:0,sx(a.TT)-sx(a.IT));
+    if(a.dur>0)g+='<rect class="g-bar'+(a.crit?' c':'')+'" x="'+sx(a.IT)+'" y="'+(y+6)+'" width="'+w+'" height="16" rx="2"><title>'+esc(a.id)+': '+fmt(a.IT)+' → '+fmt(a.TT)+'</title></rect>';
+    else g+='<path class="g-bar'+(a.crit?' c':'')+'" d="M'+sx(a.IT)+','+(y+5)+' l7,9 l-7,9 l-7,-9 z"/>';
+  });
+  g+='<line class="g-te" x1="'+sx(res.TE)+'" x2="'+sx(res.TE)+'" y1="'+(TOP-6)+'" y2="'+(H-10)+'"/>';
+  if(Math.abs(res.D-res.TE)>EPS)g+='<line class="g-te" style="stroke:var(--crit)" x1="'+sx(res.D)+'" x2="'+sx(res.D)+'" y1="'+(TOP-6)+'" y2="'+(H-10)+'"/>';
+  $('#gantt').innerHTML='<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Programa de actividades al inicio temprano" style="min-width:'+Math.min(W,760)+'px">'+g+'</svg>';
+}
+
+/* procedimiento */
+function names(res,list){return list.map(function(i){return res.acts[i].id;});}
+function renderSteps(res){
+  var acts=res.acts,u=esc(state.unit||''),f='',b='';
+  res.order.forEach(function(i){
+    var a=acts[i],cls=a.crit?'c':'',tag=[];
+    if(a.preds.length>1)tag.push('fusión');
+    var line1;
+    if(!a.preds.length){line1='IT = 0 (inicio del proyecto)';}
+    else if(a.preds.length===1){var p=acts[a.preds[0]];line1='IT = TT('+esc(p.id)+') = '+fmt(p.TT);}
+    else{
+      line1='IT = máx( '+a.preds.map(function(p){return 'TT('+esc(acts[p].id)+')='+fmt(acts[p].TT);}).join(', ')+' ) = '+fmt(a.IT);
+    }
+    var ctl='';
+    if(a.preds.length>1){
+      var cp=a.preds.filter(function(p){return Math.abs(acts[p].TT-a.IT)<EPS;});
+      ctl='<span class="ctl">Controla: '+esc(names(res,cp).join(', '))+' (la de terminación temprana más larga)</span>';
+    }
+    f+='<li class="'+cls+'"><div class="h"><span class="id">'+esc(a.id)+'</span>'+(tag.length?'<span class="tag">'+tag.join(' · ')+'</span>':'')+'</div><code>'+line1+'</code><code>TT = IT + Dur = '+fmt(a.IT)+' + '+fmt(a.dur)+' = '+fmt(a.TT)+'</code>'+ctl+'</li>';
+  });
+  $('#steps-f').innerHTML=f;
+  var fin=res.acts.filter(function(a){return !a.succs.length;});
+  var byDL=Math.abs(res.D-res.TE)>EPS;
+  $('#cap-b').textContent='FT − Dur = CT. Se parte de FT = '+fmt(res.D)+' '+(state.unit||'')+' ('+(byDL?'plazo límite':'TE')+') en '+(fin.length>1?'las actividades finales':'la actividad final')+'; en una actividad explosiva, el FT es el menor CT de sus sucesoras.';
+  res.order.slice().reverse().forEach(function(i){
+    var a=acts[i],cls=a.crit?'c':'',line1,tag=[];
+    if(a.succs.length>1)tag.push('explosiva');
+    if(!a.succs.length){line1='FT = '+(byDL?'plazo límite':'TE')+' = '+fmt(a.FT);}
+    else if(a.succs.length===1){var s=acts[a.succs[0]];line1='FT = CT('+esc(s.id)+') = '+fmt(s.CT);}
+    else{line1='FT = mín( '+a.succs.map(function(s){return 'CT('+esc(acts[s].id)+')='+fmt(acts[s].CT);}).join(', ')+' ) = '+fmt(a.FT);}
+    var ctl='';
+    if(a.succs.length>1){
+      var cs=a.succs.filter(function(s){return Math.abs(acts[s].CT-a.FT)<EPS;});
+      ctl='<span class="ctl">Controla: '+esc(names(res,cs).join(', '))+' (la de comienzo tardío más pequeño)</span>';
+    }
+    b+='<li class="'+cls+'"><div class="h"><span class="id">'+esc(a.id)+'</span>'+(tag.length?'<span class="tag">'+tag.join(' · ')+'</span>':'')+'</div><code>'+line1+'</code><code>CT = FT − Dur = '+fmt(a.FT)+' − '+fmt(a.dur)+' = '+fmt(a.CT)+'</code><code>HT = CT − IT = '+fmt(a.CT)+' − '+fmt(a.IT)+' = '+fmt(a.HT)+'</code>'+ctl+'</li>';
+  });
+  $('#steps-b').innerHTML=b;
+}
+
+function update(){
+  save();
+  var res=analyze();lastRes=res;
+  renderMsgs(res);
+  $('#exbadge').hidden=!state.example;
+  $('#ex-hint').hidden=!state.example;
+  var ok=!!res.ok;
+  $('#results').hidden=!ok;
+  if(!ok)return;
+  renderSummary(res);renderTable(res);renderDiagram(res);renderGantt(res);renderSteps(res);
+}
+
+/* ------------------------------ eventos ------------------------------ */
+$('#rows').addEventListener('input',function(e){
+  var row=e.target.closest('.row');if(!row||!e.target.dataset.f)return;
+  var r=state.rows.filter(function(x){return String(x.uid)===row.dataset.uid;})[0];if(!r)return;
+  r[e.target.dataset.f]=e.target.value;state.example=false;update();
+});
+$('#rows').addEventListener('click',function(e){
+  var b=e.target.closest('[data-del]');if(!b)return;
+  state.rows=state.rows.filter(function(x){return String(x.uid)!==b.dataset.del;});
+  state.example=false;renderRows();update();
+});
+$('#rows').addEventListener('keydown',function(e){
+  if(e.key!=='Enter'||e.target.dataset.f!=='pred')return;
+  var row=e.target.closest('.row');
+  if(row&&row===row.parentNode.lastElementChild){e.preventDefault();addRow();}
+});
+function addRow(){
+  var r=mk(nextId(),'','','');state.rows.push(r);state.example=false;renderRows();update();
+  var el=document.getElementById('du-'+r.uid);if(el)el.focus();
+}
+$('#b-add').addEventListener('click',addRow);
+$('#b-ex').addEventListener('click',function(){state.rows=exRows();state.unit='días hábiles';state.deadline='';state.example=true;$('#in-unit').value=state.unit;$('#in-deadline').value='';renderRows();update();});
+$('#b-clear').addEventListener('click',function(){state.rows=[mk('A','','','')];state.deadline='';state.example=false;$('#in-deadline').value='';renderRows();update();});
+$('#in-unit').addEventListener('input',function(e){state.unit=e.target.value;update();});
+$('#in-deadline').addEventListener('input',function(e){state.deadline=e.target.value;update();});
+$('#b-copy').addEventListener('click',function(){
+  if(!lastRes||!lastRes.ok)return;
+  var lines=[['ID','Descripción','Dur','IT','TT','CT','FT','HT','HL','Crítica'].join('\t')];
+  lastRes.acts.forEach(function(a){lines.push([a.id,a.name,fmt(a.dur),fmt(a.IT),fmt(a.TT),fmt(a.CT),fmt(a.FT),fmt(a.HT),fmt(a.HL),a.crit?'Sí':'No'].join('\t'));});
+  var txt=lines.join('\n'),btn=$('#b-copy');
+  function done(ok){btn.textContent=ok?'Copiado':'No se pudo copiar';setTimeout(function(){btn.textContent='Copiar tabla';},1600);}
+  function fallback(){
+    try{var ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();var ok=document.execCommand('copy');document.body.removeChild(ta);done(ok);}catch(err){done(false);}
+  }
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){done(true);},fallback);}
+    else fallback();
+  }catch(err){fallback();}
+});
+
+$('#in-unit').value=state.unit;
+$('#in-deadline').value=state.deadline;
+renderRows();
+update();
+})();
+</script>
+</body>
+</html>
