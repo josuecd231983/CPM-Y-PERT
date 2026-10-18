@@ -41,6 +41,7 @@
   --crit:#FF7A66;--crit-soft:#3B1F1B;--ok:#5FCB9A;--ok-soft:#173428;--warn:#F2C05C;--warn-soft:#35290F;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.5;padding-inline:16px;padding-block:24px 48px}
 .app{max-width:1120px;margin-inline:auto;display:flex;flex-direction:column;gap:20px}
 h1,h2,h3{font-family:var(--font-head);margin:0;text-wrap:balance;letter-spacing:.005em}
@@ -82,6 +83,12 @@ input:hover{border-color:var(--line-strong)}
 .seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
 :root[data-theme="dark"] .seg button[aria-pressed="true"]{color:#0E161C}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .seg button[aria-pressed="true"]{color:#0E161C}}
+.modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+.modes button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:12px 16px;border:1.5px solid var(--line-strong);border-radius:6px;background:var(--surface);color:var(--ink)}
+.modes button b{font-family:var(--font-head);font-size:20px;font-weight:700;letter-spacing:.02em}
+.modes button span{font-size:12.5px;color:var(--muted);font-weight:400}
+.modes button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 0 -3px 0 var(--accent)}
+.modes button[aria-pressed="true"] b{color:var(--accent)}
 .formula{display:flex;flex-wrap:wrap;gap:12px 32px;padding:12px 14px;background:var(--surface-2);border:1px solid var(--line);border-radius:4px;font-family:var(--mono);font-size:14px;margin-bottom:14px}
 .formula small{display:block;font-family:var(--font);font-size:12px;color:var(--muted);margin-top:1px}
 .pcalc{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px}
@@ -103,6 +110,23 @@ input:hover{border-color:var(--line-strong)}
 tr.inpath td{background:var(--crit-soft)}
 tr.inpath td:first-child{font-weight:700;color:var(--crit)}
 tfoot td{font-weight:600;background:var(--surface-2)}
+.grid.cr{min-width:980px}
+.grid.cr .row,.grid.cr .rows-head{grid-template-columns:66px minmax(100px,1fr) 64px 72px 64px 72px 68px 56px minmax(100px,1fr) 36px}
+tr.opt td{background:var(--ok-soft)}
+tr.opt td:first-child{font-weight:700;color:var(--ok)}
+.c-direct{fill:none;stroke:var(--accent);stroke-width:2}
+.c-indirect{fill:none;stroke:var(--ok);stroke-width:2;stroke-dasharray:5 3}
+.c-total{fill:none;stroke:var(--crit);stroke-width:2.8}
+.c-dot{stroke:var(--surface);stroke-width:1.2}
+.c-opt{stroke:var(--ink);stroke-width:1.2;stroke-dasharray:4 3}
+.c-grid{stroke:var(--line);stroke-width:1}
+.c-axis{font-size:11px;fill:var(--muted)}
+.c-lbl{font-size:11.5px;font-family:var(--font);fill:var(--ink)}
+.clegend{display:flex;flex-wrap:wrap;gap:14px 22px;margin-bottom:10px;font-size:12.5px;color:var(--muted)}
+.clegend .sw i{border-top-width:3px}
+.clegend .sw i.ind{border-top-style:dashed;border-top-color:var(--ok)}
+.clegend .sw i.tot{border-top-color:var(--crit);border-top-width:3.5px}
+.clegend .sw i.dir{border-top-color:var(--accent)}
 .row.bad input{border-color:var(--crit);background:var(--crit-soft)}
 .del{padding:0;height:32px;width:32px;font-size:18px;line-height:1;color:var(--muted)}
 .hint{margin:10px 0 0;color:var(--muted);font-size:12.5px}
@@ -203,17 +227,23 @@ details p{margin:8px 0 0}
 }
 @media (prefers-reduced-motion:no-preference){button{transition:background .12s,filter .12s}}
 </style>
-<meta name="description" content="Calculadora de ruta crítica por CPM y análisis PERT: pase hacia adelante y hacia atrás, holguras, diagrama de red y probabilidad de cumplir un plazo (Gray y Larson).">
+<meta name="description" content="Calculadora de ruta crítica por CPM, análisis PERT y reducción de costo y duración (crashing): pase hacia adelante y hacia atrás, holguras, diagrama de red, probabilidad de cumplir un plazo y punto óptimo de costo (Gray y Larson).">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231D5E8C'/%3E%3Cpath d='M5 22h6v-6h6v-6h10' fill='none' stroke='%23fff' stroke-width='3' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>:root{color-scheme:light dark}:root[data-theme="light"]{color-scheme:light}:root[data-theme="dark"]{color-scheme:dark}html{-webkit-text-size-adjust:100%}body{margin:0}[hidden]{display:none!important}</style>
 </head>
 <body>
 <div class="app">
   <header>
-    <p class="eyebrow">Gray &amp; Larson · Administración de proyectos · Capítulo 6</p>
+    <p class="eyebrow">Gray &amp; Larson · Administración de proyectos · Capítulos 6, 7 y 9</p>
     <h1>Ruta Crítica CPM</h1>
-    <p class="lede">Captura las actividades con su duración (CPM) o con tres estimaciones (PERT) y sus predecesoras. La aplicación ejecuta el pase hacia adelante (IT, TT), el pase hacia atrás (CT, FT), calcula las holguras y señala la ruta crítica; en modo PERT añade el tiempo esperado, la varianza y la probabilidad de cumplir un plazo.</p>
+    <p class="lede">Captura las actividades con su duración (CPM) o con tres estimaciones (PERT) y sus predecesoras. La aplicación ejecuta el pase hacia adelante (IT, TT), el pase hacia atrás (CT, FT), calcula las holguras y señala la ruta crítica; en modo PERT añade el tiempo esperado, la varianza y la probabilidad de cumplir un plazo; en modo de reducción de costo y duración calcula la pendiente de costo de cada actividad, la secuencia de acortamiento de la red y el punto óptimo de costo total (cap. 9).</p>
   </header>
+
+  <nav class="modes" role="group" aria-label="Método de análisis">
+    <button type="button" id="m-cpm" aria-pressed="true"><b>CPM</b><span>Ruta crítica con una duración por actividad</span></button>
+    <button type="button" id="m-pert" aria-pressed="false"><b>PERT</b><span>Tres estimaciones (a, m, b), varianza y probabilidad de cumplir el plazo</span></button>
+    <button type="button" id="m-crash" aria-pressed="false"><b>Costo y duración</b><span>Pendiente de costo, acortamiento de la red y punto óptimo (cap. 9)</span></button>
+  </nav>
 
   <section class="card" aria-labelledby="h-datos">
     <div class="card-head">
@@ -228,10 +258,6 @@ details p{margin:8px 0 0}
       </div>
     </div>
     <div class="opts">
-      <div class="seg" role="group" aria-label="Modo de estimación de duraciones">
-        <button type="button" id="m-cpm" aria-pressed="true">CPM · una estimación</button>
-        <button type="button" id="m-pert" aria-pressed="false">PERT · a, m, b</button>
-      </div>
       <label for="in-unit">Unidad de tiempo
         <input id="in-unit" type="text" value="días hábiles" autocomplete="off">
       </label>
@@ -350,6 +376,72 @@ details p{margin:8px 0 0}
     </section>
   </div>
 
+  <div id="crash" style="display:flex;flex-direction:column;gap:20px" hidden>
+    <section class="card" aria-labelledby="h-cslopes">
+      <div class="card-head">
+        <div>
+          <h2 id="h-cslopes">Concesiones de costo y tiempo</h2>
+          <p>La pendiente es lo que cuesta acortar la actividad un periodo; el máximo de acortamiento es tiempo normal − tiempo de acortamiento.</p>
+        </div>
+      </div>
+      <div class="formula">
+        <div>Pendiente = (costo acort. − costo normal) / (tiempo normal − tiempo acort.)<small>Costo directo por periodo reducido</small></div>
+      </div>
+      <div class="scroll"><div id="crash-slopes"></div></div>
+      <p class="note" id="crash-direct0"></p>
+    </section>
+
+    <section class="card" aria-labelledby="h-copts">
+      <div class="card-head">
+        <div>
+          <h2 id="h-copts">Costos indirectos</h2>
+          <p>Para la curva de costo total (figura 9.6): el costo indirecto a la duración normal y cuánto se ahorra por cada periodo que se acorte el proyecto.</p>
+        </div>
+      </div>
+      <div class="opts">
+        <label for="in-cbase">Costo indirecto en la duración normal
+          <input id="in-cbase" type="number" min="0" step="any" inputmode="decimal" placeholder="Ej. 400" autocomplete="off">
+        </label>
+        <label for="in-crate">Ahorro de costo indirecto por periodo acortado
+          <input id="in-crate" type="number" min="0" step="any" inputmode="decimal" placeholder="Ej. 50" autocomplete="off">
+        </label>
+        <label for="in-ctarget">Duración mínima a evaluar (opcional)
+          <input id="in-ctarget" type="number" min="0" step="any" inputmode="decimal" placeholder="Vacío = acortar al máximo" autocomplete="off">
+        </label>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="h-crounds">
+      <div class="card-head">
+        <div>
+          <h2 id="h-crounds">Secuencia de acortamiento</h2>
+          <p>En cada ronda se reduce un periodo la combinación más barata de actividades críticas que acorta TODAS las rutas críticas vigentes.</p>
+        </div>
+      </div>
+      <ol class="steps" id="crash-rounds"></ol>
+      <p class="note" id="crash-stop"></p>
+    </section>
+
+    <section class="card" aria-labelledby="h-csum">
+      <div class="card-head">
+        <div>
+          <h2 id="h-csum">Costo contra duración</h2>
+          <p>El punto óptimo minimiza el costo total (directo + indirecto), como en la figura 9.6 del libro.</p>
+        </div>
+      </div>
+      <div class="scroll"><div id="crash-sum"></div></div>
+      <div id="crash-chartwrap" style="margin-top:16px">
+        <div class="clegend">
+          <span class="sw"><i class="dir"></i>Costo directo</span>
+          <span class="sw"><i class="ind"></i>Costo indirecto</span>
+          <span class="sw"><i class="tot"></i>Costo total</span>
+        </div>
+        <div class="scroll" id="crash-chart"></div>
+      </div>
+    </section>
+    <p class="note">Supuestos: se acorta un periodo a la vez con la combinación de menor costo que reduce todas las rutas críticas vigentes (la aplicación revisa combinaciones de hasta 6 actividades; en redes muy grandes usa una aproximación por cobertura, señalada en la ronda correspondiente). El costo indirecto se trata como una recta entre la duración normal y el ahorro por periodo indicado.</p>
+  </div>
+
   <details>
     <summary>Reglas del pase hacia adelante y hacia atrás</summary>
     <div>
@@ -393,7 +485,7 @@ details p{margin:8px 0 0}
   </details>
 
   <footer class="foot">
-    Referencia: Gray, C. F. y Larson, E. W., <i>Administración de proyectos</i>, 4.ª ed., McGraw-Hill, cap. 6 (pase hacia adelante, pase hacia atrás y holgura; ejemplo Koll Business Center) y ecuación 7.1 (tiempo valorado promedio de PERT). Origen de los métodos: Kelley, J. E. y Walker, M. R. (1959), «Critical-path planning and scheduling», <i>Proceedings of the Eastern Joint Computer Conference</i>, pp. 160–173; Malcolm, D. G., Roseboom, J. H., Clark, C. E. y Fazar, W. (1959), «Application of a technique for research and development program evaluation», <i>Operations Research</i>, 7(5), 646–669. Sobre los supuestos de PERT: MacCrimmon, K. R. y Ryavec, C. A. (1964), «An analytical study of the PERT assumptions», <i>Operations Research</i>, 12(1), 16–37. Los datos se guardan sólo en este navegador.
+    Referencia: Gray, C. F. y Larson, E. W., <i>Administración de proyectos</i>, 4.ª ed., McGraw-Hill, cap. 6 (pase hacia adelante, pase hacia atrás y holgura; ejemplo Koll Business Center), ecuación 7.1 (tiempo valorado promedio de PERT) y cap. 9 (concesiones de costo y duración, pendiente de costo, figuras 9.3 a 9.6). Origen de los métodos: Kelley, J. E. y Walker, M. R. (1959), «Critical-path planning and scheduling», <i>Proceedings of the Eastern Joint Computer Conference</i>, pp. 160–173; Malcolm, D. G., Roseboom, J. H., Clark, C. E. y Fazar, W. (1959), «Application of a technique for research and development program evaluation», <i>Operations Research</i>, 7(5), 646–669; Fulkerson, D. R. (1961), «A network flow computation for project cost curves», <i>Management Science</i>, 7(2), 167–178 (base del acortamiento de redes por mínimo costo). Sobre los supuestos de PERT: MacCrimmon, K. R. y Ryavec, C. A. (1964), «An analytical study of the PERT assumptions», <i>Operations Research</i>, 12(1), 16–37. Los datos se guardan sólo en este navegador.
   </footer>
 </div>
 
@@ -404,13 +496,28 @@ var KEY='cpm-gray-larson-v1', EPS=1e-7;
 var EX=[['A','',5,''],['B','',15,'A'],['C','',10,'A'],['D','',5,'A'],['E','',15,'B, C'],['F','',10,'B, C, D'],['G','',170,'F'],['H','',35,'E, G']];
 /* ejemplo didáctico PERT: m = duraciones de Koll; a y b son ilustrativas (no provienen del libro) */
 var EXP=[['A','',4,5,7,''],['B','',12,15,21,'A'],['C','',8,10,14,'A'],['D','',4,5,7,'A'],['E','',12,15,20,'B, C'],['F','',8,10,14,'B, C, D'],['G','',150,170,200,'F'],['H','',30,35,45,'E, G']];
+/* ejemplo del libro (cap. 9, fig. 9.3): id,nombre,pred,T.normal,C.normal,T.acort,C.acort */
+var EXC=[
+  ['A','','',3,50,2,70],
+  ['B','','A',6,80,4,160],
+  ['C','','A',10,60,9,90],
+  ['D','','A',11,50,7,150],
+  ['E','','B',8,100,6,160],
+  ['F','','D',5,40,4,70],
+  ['G','','C, F',6,70,6,70]
+];
 var uid=0;
-function mk(id,name,dur,pred,a,m,b){return {uid:++uid,id:id,name:name,dur:String(dur),pred:pred,a:String(a==null?'':a),m:String(m==null?'':m),b:String(b==null?'':b)};}
+function mk(id,name,dur,pred,a,m,b,ncost,cdur,ccost){
+  return {uid:++uid,id:id,name:name,dur:String(dur),pred:pred,
+    a:String(a==null?'':a),m:String(m==null?'':m),b:String(b==null?'':b),
+    ncost:String(ncost==null?'':ncost),cdur:String(cdur==null?'':cdur),ccost:String(ccost==null?'':ccost)};
+}
 function exRows(kind){
   if(kind==='pert')return EXP.map(function(r){return mk(r[0],r[1],r[3],r[5],r[2],r[3],r[4]);});
+  if(kind==='crash')return EXC.map(function(r){return mk(r[0],r[1],r[3],r[2],null,null,null,r[4],r[5],r[6]);});
   return EX.map(function(r){return mk(r[0],r[1],r[2],r[3]);});
 }
-var state={unit:'días hábiles',deadline:'',mode:'cpm',example:'cpm',pertTs:'',pertP:'90',rows:exRows('cpm')};
+var state={unit:'días hábiles',deadline:'',mode:'cpm',example:'cpm',pertTs:'',pertP:'90',crashBase:'',crashRate:'',crashTarget:'',rows:exRows('cpm')};
 try{
   var raw=localStorage.getItem(KEY);
   if(raw){
@@ -418,15 +525,18 @@ try{
     if(p&&Array.isArray(p.rows)){
       state.unit=typeof p.unit==='string'?p.unit:state.unit;
       state.deadline=typeof p.deadline==='string'?p.deadline:'';
-      state.mode=p.mode==='pert'?'pert':'cpm';
+      state.mode=(p.mode==='pert'||p.mode==='crash')?p.mode:'cpm';
       state.pertTs=typeof p.pertTs==='string'?p.pertTs:'';
       state.pertP=typeof p.pertP==='string'?p.pertP:'90';
-      state.example=p.example===true?'cpm':(p.example==='cpm'||p.example==='pert'?p.example:false);
-      state.rows=p.rows.map(function(r){return mk(String(r.id||''),String(r.name||''),String(r.dur==null?'':r.dur),String(r.pred||''),r.a,r.m,r.b);});
+      state.crashBase=typeof p.crashBase==='string'?p.crashBase:'';
+      state.crashRate=typeof p.crashRate==='string'?p.crashRate:'';
+      state.crashTarget=typeof p.crashTarget==='string'?p.crashTarget:'';
+      state.example=p.example===true?'cpm':(p.example==='cpm'||p.example==='pert'||p.example==='crash'?p.example:false);
+      state.rows=p.rows.map(function(r){return mk(String(r.id||''),String(r.name||''),String(r.dur==null?'':r.dur),String(r.pred||''),r.a,r.m,r.b,r.ncost,r.cdur,r.ccost);});
     }
   }
 }catch(e){}
-function save(){try{localStorage.setItem(KEY,JSON.stringify({unit:state.unit,deadline:state.deadline,mode:state.mode,pertTs:state.pertTs,pertP:state.pertP,example:state.example,rows:state.rows}));}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({unit:state.unit,deadline:state.deadline,mode:state.mode,pertTs:state.pertTs,pertP:state.pertP,crashBase:state.crashBase,crashRate:state.crashRate,crashTarget:state.crashTarget,example:state.example,rows:state.rows}));}catch(e){}}
 
 var $=function(s){return document.querySelector(s);};
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
@@ -555,10 +665,12 @@ function tipo(a){
   return t.join(' · ');
 }
 function renderRows(){
-  var isP=state.mode==='pert';
+  var isP=state.mode==='pert',isC=state.mode==='crash';
   $('#grid').classList.toggle('pm',isP);
+  $('#grid').classList.toggle('cr',isC);
   $('#rows-head').innerHTML=isP
     ?'<span>ID</span><span>Descripción</span><span title="Tiempo optimista">a</span><span title="Tiempo más probable">m</span><span title="Tiempo pesimista">b</span><span title="Tiempo esperado te = (a + 4m + b) / 6">te</span><span>Predecesoras</span><span></span>'
+    :isC?'<span>ID</span><span>Descripción</span><span title="Tiempo normal">T.normal</span><span title="Costo normal">C.normal</span><span title="Tiempo de acortamiento (crash)">T.acort</span><span title="Costo de acortamiento (crash)">C.acort</span><span title="Pendiente de costo por periodo acortado">Pendiente</span><span title="Máximo de periodos que puede acortarse">Máx</span><span>Predecesoras</span><span></span>'
     :'<span>ID</span><span>Descripción</span><span>Duración</span><span>Predecesoras</span><span></span>';
   function num(u,f,p,v,i,lbl){return '<input id="'+p+u+'" data-f="'+f+'" type="number" min="0" step="any" inputmode="decimal" value="'+esc(v)+'" aria-label="'+lbl+', fila '+(i+1)+'" placeholder="0" autocomplete="off">';}
   $('#rows').innerHTML=state.rows.map(function(r,i){
@@ -568,20 +680,32 @@ function renderRows(){
       '<input id="nm-'+u+'" data-f="name" value="'+esc(r.name)+'" aria-label="Descripción, fila '+(i+1)+'" placeholder="Descripción (opcional)" autocomplete="off">'+
       (isP
         ?num(u,'a','pa-',r.a,i,'Tiempo optimista a')+num(u,'m','pm-',r.m,i,'Tiempo más probable m')+num(u,'b','pb-',r.b,i,'Tiempo pesimista b')+'<span class="te-cell" id="te-'+u+'" aria-label="Tiempo esperado, fila '+(i+1)+'">–</span>'
-        :num(u,'dur','du-',r.dur,i,'Duración')) +
+        :isC
+          ?num(u,'dur','du-',r.dur,i,'Tiempo normal')+num(u,'ncost','nc-',r.ncost,i,'Costo normal')+num(u,'cdur','cd-',r.cdur,i,'Tiempo de acortamiento')+num(u,'ccost','cc-',r.ccost,i,'Costo de acortamiento')+'<span class="te-cell" id="sl-'+u+'" aria-label="Pendiente, fila '+(i+1)+'">–</span><span class="te-cell" id="mx-'+u+'" aria-label="Máximo de acortamiento, fila '+(i+1)+'">–</span>'
+          :num(u,'dur','du-',r.dur,i,'Duración')) +
       '<input id="pr-'+u+'" data-f="pred" value="'+esc(r.pred)+'" aria-label="Predecesoras, fila '+(i+1)+'" placeholder="—" autocomplete="off">'+
       '<button type="button" class="del" data-del="'+u+'" aria-label="Eliminar fila '+(i+1)+'" title="Eliminar">×</button>'+
     '</div>';
   }).join('');
 }
 function updateTeCells(){
-  if(state.mode!=='pert')return;
-  state.rows.forEach(function(r){
-    var el=document.getElementById('te-'+r.uid);if(!el)return;
-    var a=Number(r.a),m=Number(r.m),b=Number(r.b);
-    var ok=String(r.a).trim()!==''&&String(r.m).trim()!==''&&String(r.b).trim()!==''&&isFinite(a+m+b)&&a>=0&&a<=m&&m<=b;
-    el.textContent=ok?fmt((a+4*m+b)/6):'–';
-  });
+  if(state.mode==='pert'){
+    state.rows.forEach(function(r){
+      var el=document.getElementById('te-'+r.uid);if(!el)return;
+      var a=Number(r.a),m=Number(r.m),b=Number(r.b);
+      var ok=String(r.a).trim()!==''&&String(r.m).trim()!==''&&String(r.b).trim()!==''&&isFinite(a+m+b)&&a>=0&&a<=m&&m<=b;
+      el.textContent=ok?fmt((a+4*m+b)/6):'–';
+    });
+  }else if(state.mode==='crash'){
+    state.rows.forEach(function(r){
+      var sl=document.getElementById('sl-'+r.uid),mx=document.getElementById('mx-'+r.uid);if(!sl||!mx)return;
+      var dur=Number(r.dur),nc=Number(r.ncost),cd=Number(r.cdur),cc=Number(r.ccost);
+      var ok=[r.dur,r.ncost,r.cdur,r.ccost].every(function(v){return String(v).trim()!=='';})&&isFinite(dur+nc+cd+cc)&&cd<=dur+EPS&&cc>=nc-EPS;
+      var maxC=ok?r6(dur-cd):NaN;
+      sl.textContent=ok?(maxC>EPS?fmt((cc-nc)/maxC):'0'):'–';
+      mx.textContent=ok?fmt(maxC):'–';
+    });
+  }
 }
 function renderMsgs(res){
   var h='';
@@ -590,7 +714,7 @@ function renderMsgs(res){
   }else if(res.empty){
     h+='<div class="msg info">Agrega al menos una actividad con su duración para calcular la ruta crítica.</div>';
   }
-  if(res.ok)res.notes.forEach(function(n){h+='<div class="msg '+n.t+'">'+n.msg+'</div>';});
+  if(res.ok)(res.notes||[]).forEach(function(n){h+='<div class="msg '+n.t+'">'+n.msg+'</div>';});
   $('#msgs').innerHTML=h;
   var bad={};(res.errors||[]).forEach(function(e){if(e.uid)bad[e.uid]=1;});
   document.querySelectorAll('.row').forEach(function(el){el.classList.toggle('bad',!!bad[el.dataset.uid]);});
@@ -855,16 +979,235 @@ function renderPert(res){
   $('#pert-ref').innerHTML='<table style="min-width:0"><thead><tr><th class="l" colspan="6">Tiempo de terminación según la confianza deseada ('+esc(unit)+')</th></tr></thead><tbody><tr><td class="l">Probabilidad</td>'+r1+'</tr><tr><td class="l">Z</td>'+r2+'</tr><tr><td class="l">Tiempo T</td>'+r3+'</tr></tbody></table>';
 }
 
+/* ------------------------------ reducción de costo y duración (cap. 9) ------------------------------ */
+function coreCPM(items,deadline){
+  var n=items.length;
+  items.forEach(function(a){a.succs=[];});
+  items.forEach(function(a,i){a.preds.forEach(function(p){items[p].succs.push(i);});});
+  var indeg=items.map(function(a){return a.preds.length;}),queue=[],order=[];
+  indeg.forEach(function(d,i){if(d===0)queue.push(i);});
+  while(queue.length){var u=queue.shift();order.push(u);items[u].succs.forEach(function(v){if(--indeg[v]===0)queue.push(v);});}
+  if(order.length<n)return {cycle:true};
+  order.forEach(function(i){
+    var a=items[i];
+    a.IT=a.preds.length?Math.max.apply(null,a.preds.map(function(p){return items[p].TT;})):0;
+    a.TT=r6(a.IT+a.dur);a.IT=r6(a.IT);
+  });
+  var TE=Math.max.apply(null,items.map(function(a){return a.TT;}));
+  var D=deadline==null?TE:deadline;
+  order.slice().reverse().forEach(function(i){
+    var a=items[i];
+    a.FT=a.succs.length?Math.min.apply(null,a.succs.map(function(s){return items[s].CT;})):D;
+    a.CT=r6(a.FT-a.dur);a.FT=r6(a.FT);
+    a.HT=r6(a.CT-a.IT);
+  });
+  var minHT=Math.min.apply(null,items.map(function(a){return a.HT;}));
+  items.forEach(function(a){a.crit=a.HT<=minHT+EPS;});
+  function tight(u,v){return items[u].crit&&items[v].crit&&Math.abs(items[v].IT-items[u].TT)<EPS;}
+  var starts=[];
+  items.forEach(function(a,i){if(a.crit&&!a.preds.some(function(p){return tight(p,i);}))starts.push(i);});
+  var paths=[];
+  function walk(i,path){
+    path.push(i);
+    var nx=items[i].succs.filter(function(s){return tight(i,s);});
+    if(!nx.length)paths.push(path.slice());
+    else if(paths.length<80)nx.forEach(function(s){walk(s,path);});
+    path.pop();
+  }
+  starts.forEach(function(s){walk(s,[]);});
+  return {order:order,TE:TE,D:D,paths:paths,minHT:minHT};
+}
+function combinations(arr,k){
+  var res=[];
+  (function go(start,combo){
+    if(combo.length===k){res.push(combo.slice());return;}
+    for(var i=start;i<arr.length;i++){combo.push(arr[i]);go(i+1,combo);combo.pop();}
+  })(0,[]);
+  return res;
+}
+function buildCrash(){
+  var errors=[],acts=[],byKey={};
+  state.rows.forEach(function(r,ri){
+    var id=r.id.trim(),pred=r.pred.trim(),name=r.name.trim();
+    var durS=String(r.dur).trim(),ncS=String(r.ncost).trim(),cdS=String(r.cdur).trim(),ccS=String(r.ccost).trim();
+    if(!id&&!pred&&!name&&!durS&&!ncS&&!cdS&&!ccS)return;
+    if(!id){errors.push({uid:r.uid,msg:'Fila '+(ri+1)+': falta el identificador de la actividad.'});return;}
+    var key=id.toLowerCase();
+    if(Object.prototype.hasOwnProperty.call(byKey,key)){errors.push({uid:r.uid,msg:'El identificador «'+esc(id)+'» está repetido; cada actividad debe tener uno único.'});return;}
+    var dur=durS===''?NaN:Number(durS),nc=ncS===''?NaN:Number(ncS),cd=cdS===''?NaN:Number(cdS),cc=ccS===''?NaN:Number(ccS);
+    var ok=isFinite(dur)&&dur>=0&&isFinite(nc)&&nc>=0&&isFinite(cd)&&cd>=0&&isFinite(cc)&&cc>=0;
+    if(ok&&cd>dur+EPS){ok=false;errors.push({uid:r.uid,msg:'La actividad '+esc(id)+': el tiempo de acortamiento no puede ser mayor que el tiempo normal.'});}
+    else if(ok&&cc<nc-EPS){ok=false;errors.push({uid:r.uid,msg:'La actividad '+esc(id)+': el costo de acortamiento no puede ser menor que el costo normal.'});}
+    else if(!ok){errors.push({uid:r.uid,msg:'La actividad '+esc(id)+' necesita tiempo normal, costo normal, tiempo de acortamiento y costo de acortamiento numéricos (0 ≤ T.acort ≤ T.normal, C.acort ≥ C.normal).'});}
+    byKey[key]=acts.length;
+    var maxCrash=ok?r6(dur-cd):0;
+    var slope=ok&&maxCrash>EPS?(cc-nc)/maxCrash:0;
+    acts.push({uid:r.uid,id:id,key:key,name:name,dur:ok?dur:0,ncost:ok?nc:0,cdur:ok?cd:0,ccost:ok?cc:0,maxCrash:maxCrash,slope:ok?slope:0,tokens:pred?pred.split(/[,;\s]+/).filter(Boolean):[]});
+  });
+  acts.forEach(function(a){
+    var seen={};a.preds=[];
+    a.tokens.forEach(function(t){
+      var k=t.toLowerCase();
+      if(k===a.key){errors.push({uid:a.uid,msg:'La actividad '+esc(a.id)+' no puede ser predecesora de sí misma.'});return;}
+      if(!Object.prototype.hasOwnProperty.call(byKey,k)){errors.push({uid:a.uid,msg:'La predecesora «'+esc(t)+'» de la actividad '+esc(a.id)+' no existe en la tabla.'});return;}
+      var j=byKey[k];if(!seen[j]){seen[j]=1;a.preds.push(j);}
+    });
+  });
+  if(!acts.length)return {empty:true,errors:errors};
+  if(errors.length)return {errors:errors};
+  var check=coreCPM(acts.map(function(a){return {preds:a.preds.slice(),dur:a.dur};}));
+  if(check.cycle){
+    errors.push({msg:'Se detectó un circuito cerrado en las predecesoras. Las redes de proyecto no permiten ciclos (regla 6).'});
+    return {errors:errors};
+  }
+  return {ok:true,acts:acts};
+}
+function runCrash(graph){
+  var baseActs=graph.acts,n=baseActs.length;
+  var cur=baseActs.map(function(a){return {preds:a.preds.slice(),dur:a.dur};});
+  var crashedUnits=baseActs.map(function(){return 0;});
+  var directCost=0;baseActs.forEach(function(a){directCost+=a.ncost;});
+  var targetS=String(state.crashTarget).trim(),target=targetS===''?null:Number(targetS);
+  var hasTarget=target!=null&&isFinite(target)&&target>=0;
+  var res=coreCPM(cur);
+  var rounds=[{duration:res.TE,direct:r6(directCost),changed:[],slopeSum:0,approx:false}];
+  var guard=0,stopReason=null;
+  while(guard++<300){
+    if(hasTarget&&res.TE<=target+EPS){stopReason='target';break;}
+    var paths=res.paths;
+    if(!paths.length){stopReason='max';break;}
+    var pathCrash=paths.map(function(p){return p.filter(function(i){return baseActs[i].maxCrash-crashedUnits[i]>EPS;});});
+    var blocked=pathCrash.some(function(arr){return !arr.length;});
+    if(blocked){stopReason='max';break;}
+    var union=[],seenU={};
+    pathCrash.forEach(function(arr){arr.forEach(function(i){if(!seenU[i]){seenU[i]=1;union.push(i);}});});
+    var maxK=Math.min(pathCrash.length,6),best=null,approx=false;
+    if(union.length<=16){
+      for(var k=1;k<=Math.min(maxK,union.length);k++){
+        combinations(union,k).forEach(function(combo){
+          var hitsAll=pathCrash.every(function(arr){return combo.some(function(c){return arr.indexOf(c)>=0;});});
+          if(!hitsAll)return;
+          var cost=combo.reduce(function(s,i){return s+baseActs[i].slope;},0);
+          if(!best||cost<best.cost-EPS){best={combo:combo.slice(),cost:cost};}
+        });
+      }
+    }else{
+      approx=true;
+      var remaining=pathCrash.map(function(a){return a.slice();}),combo=[],cost=0,iter=0;
+      while(remaining.some(function(a){return a.length;})&&iter++<40){
+        var countMap={};
+        remaining.forEach(function(arr){arr.forEach(function(i){countMap[i]=(countMap[i]||0)+1;});});
+        var bestI=null,bestScore=-1;
+        Object.keys(countMap).forEach(function(k2){
+          var i=Number(k2),score=countMap[k2]/Math.max(baseActs[i].slope,EPS);
+          if(score>bestScore){bestScore=score;bestI=i;}
+        });
+        if(bestI==null)break;
+        combo.push(bestI);cost+=baseActs[bestI].slope;
+        remaining=remaining.map(function(arr){return arr.indexOf(bestI)>=0?[]:arr;});
+      }
+      best={combo:combo,cost:cost};
+    }
+    if(!best||!best.combo.length){stopReason='max';break;}
+    best.combo.forEach(function(i){cur[i].dur=r6(cur[i].dur-1);crashedUnits[i]+=1;directCost=r6(directCost+baseActs[i].slope);});
+    res=coreCPM(cur);
+    rounds.push({duration:res.TE,direct:directCost,changed:best.combo.map(function(i){return baseActs[i].id;}),slopeSum:r6(best.cost),approx:approx});
+  }
+  return {ok:true,rounds:rounds,stopReason:stopReason,acts:baseActs};
+}
+function renderCrash(graph,run){
+  var acts=graph.acts,unit=esc(state.unit||'');
+  var directNormal=0;acts.forEach(function(a){directNormal+=a.ncost;});
+  var h='<table><thead><tr><th>ID</th><th class="l">Descripción</th><th title="Tiempo normal">T.normal</th><th title="Costo normal">C.normal</th><th title="Tiempo de acortamiento">T.acort</th><th title="Costo de acortamiento">C.acort</th><th title="Pendiente de costo por periodo">Pendiente</th><th title="Máximo de periodos acortables">Máx</th></tr></thead><tbody>';
+  acts.forEach(function(a){
+    h+='<tr><td>'+esc(a.id)+'</td><td class="l">'+esc(a.name)+'</td><td>'+fmt(a.dur)+'</td><td>$'+fmt(a.ncost)+'</td><td>'+fmt(a.cdur)+'</td><td>$'+fmt(a.ccost)+'</td><td><b>'+(a.maxCrash>EPS?'$'+fmt(a.slope):'—')+'</b></td><td>'+fmt(a.maxCrash)+'</td></tr>';
+  });
+  $('#crash-slopes').innerHTML=h+'</tbody></table>';
+  $('#crash-direct0').textContent='Costo directo total a duración normal ('+fmt(run.rounds[0].duration)+' '+(state.unit||'')+'): $'+fmt(directNormal)+'.';
+
+  var rh='';
+  run.rounds.forEach(function(rd,k){
+    if(k===0){
+      rh+='<li><div class="h"><span class="id">Duración normal</span></div><code>Duración = '+fmt(rd.duration)+' '+unit+' · Costo directo = $'+fmt(rd.direct)+'</code></li>';
+    }else{
+      rh+='<li class="c"><div class="h"><span class="id">Ronda '+k+'</span><span class="tag">'+esc(rd.changed.join(', '))+(rd.approx?' · aproximado':'')+'</span></div>'+
+        '<code>Se acorta 1 periodo: '+esc(rd.changed.join(' + '))+' (pendiente conjunta $'+fmt(rd.slopeSum)+'/periodo)</code>'+
+        '<code>Duración = '+fmt(rd.duration)+' '+unit+' · Costo directo acumulado = $'+fmt(rd.direct)+'</code></li>';
+    }
+  });
+  $('#crash-rounds').innerHTML=rh;
+  var stopMsg={
+    target:'Se detuvo al alcanzar la duración mínima a evaluar que indicaste.',
+    max:'Se detuvo porque ya no es posible acortar más: al menos una ruta crítica no tiene actividades con capacidad de acortamiento restante (duración técnica mínima del proyecto).'
+  }[run.stopReason]||'Se detuvo tras '+(run.rounds.length-1)+' rondas.';
+  $('#crash-stop').textContent=stopMsg;
+
+  var baseS=String(state.crashBase).trim(),rateS=String(state.crashRate).trim();
+  var base=Number(baseS),rate=Number(rateS);
+  var hasIndirect=baseS!==''&&rateS!==''&&isFinite(base)&&isFinite(rate)&&base>=0&&rate>=0;
+  var normalDur=run.rounds[0].duration;
+  var rows=run.rounds.map(function(rd){
+    var indirect=hasIndirect?Math.max(0,r6(base-rate*(normalDur-rd.duration))):null;
+    var total=hasIndirect?r6(rd.direct+indirect):null;
+    return {duration:rd.duration,direct:rd.direct,indirect:indirect,total:total};
+  });
+  var optIdx=-1;
+  if(hasIndirect){
+    rows.forEach(function(rw,i){if(optIdx<0||rw.total<rows[optIdx].total-EPS)optIdx=i;});
+  }
+  var sh='<table><thead><tr><th title="Duración del proyecto">Duración</th><th title="Costo directo">C. directo</th>'+(hasIndirect?'<th title="Costo indirecto">C. indirecto</th><th title="Costo total">C. total</th>':'')+'</tr></thead><tbody>';
+  rows.forEach(function(rw,i){
+    sh+='<tr class="'+(i===optIdx?'opt':'')+'"><td>'+fmt(rw.duration)+'</td><td>$'+fmt(rw.direct)+'</td>'+(hasIndirect?'<td>$'+fmt(rw.indirect)+'</td><td><b>$'+fmt(rw.total)+'</b>'+(i===optIdx?' <span class="pill s">óptimo</span>':'')+'</td>':'')+'</tr>';
+  });
+  $('#crash-sum').innerHTML=sh+'</tbody></table>'+(hasIndirect?'':'<p class="note">Agrega el costo indirecto en la duración normal y el ahorro por periodo para ver el costo total y el punto óptimo.</p>');
+
+  var ch=$('#crash-chart');
+  if(rows.length<2){ch.innerHTML='<p class="note" style="margin:0">No hay más de una duración posible para graficar.</p>';}
+  else{
+    var pts=rows.slice().sort(function(x,y){return x.duration-y.duration;});
+    var W=680,H=260,L=56,R=20,T=18,B=38;
+    var xmin=pts[0].duration,xmax=pts[pts.length-1].duration,xr=Math.max(xmax-xmin,EPS);
+    var sx=function(d){return L+(d-xmin)/xr*(W-L-R);};
+    var allVals=[];pts.forEach(function(p){allVals.push(p.direct);if(hasIndirect){allVals.push(p.indirect);allVals.push(p.total);}});
+    var ymax=Math.max.apply(null,allVals)*1.12||1,ymin=0;
+    var sy=function(v){return T+(1-(v-ymin)/(ymax-ymin))*(H-T-B);};
+    function line(cls,key){
+      var d='M'+pts.map(function(p,i){return (i?'L':'')+sx(p.duration).toFixed(1)+','+sy(p[key]).toFixed(1);}).join(' ');
+      var dots=pts.map(function(p){return '<circle class="c-dot" cx="'+sx(p.duration).toFixed(1)+'" cy="'+sy(p[key]).toFixed(1)+'" r="3.2" style="fill:currentColor"/>';}).join('');
+      return '<g class="'+cls+'" style="color:inherit">'+'<path d="'+d+'"/></g><g class="'+cls+'">'+dots+'</g>';
+    }
+    var g='';
+    var yticks=4;
+    for(var t=0;t<=yticks;t++){var yv=ymax*t/yticks;g+='<line class="c-grid" x1="'+L+'" x2="'+(W-R)+'" y1="'+sy(yv)+'" y2="'+sy(yv)+'"/><text class="c-axis" x="'+(L-8)+'" y="'+(sy(yv)+4)+'" text-anchor="end">$'+fmt(yv)+'</text>';}
+    pts.forEach(function(p){g+='<text class="c-axis" x="'+sx(p.duration)+'" y="'+(H-B+16)+'" text-anchor="middle">'+fmt(p.duration)+'</text>';});
+    g+='<text class="c-axis" x="'+(W/2)+'" y="'+(H-4)+'" text-anchor="middle">Duración del proyecto ('+unit+')</text>';
+    g+=line('c-direct','direct');
+    if(hasIndirect){
+      g+=line('c-indirect','indirect');
+      g+=line('c-total','total');
+      if(optIdx>=0){
+        var optPt=rows[optIdx],ox=sx(optPt.duration);
+        g+='<line class="c-opt" x1="'+ox+'" x2="'+ox+'" y1="'+T+'" y2="'+sy(0)+'"/><text class="c-lbl" x="'+ox+'" y="'+(T-5)+'" text-anchor="middle" style="font-weight:600">Óptimo: '+fmt(optPt.duration)+' · $'+fmt(optPt.total)+'</text>';
+      }
+    }
+    ch.innerHTML='<svg width="100%" viewBox="0 0 '+W+' '+H+'" style="min-width:560px;display:block" role="img" aria-label="Costo directo, indirecto y total contra la duración del proyecto">'+g+'</svg>';
+  }
+}
+
 function syncMode(){
-  var isP=state.mode==='pert',ex=state.example;
-  $('#m-cpm').setAttribute('aria-pressed',String(!isP));
-  $('#m-pert').setAttribute('aria-pressed',String(isP));
-  $('#b-ex').textContent=isP?'Cargar ejemplo PERT':'Cargar ejemplo Koll';
+  var m=state.mode,ex=state.example;
+  $('#m-cpm').setAttribute('aria-pressed',String(m==='cpm'));
+  $('#m-pert').setAttribute('aria-pressed',String(m==='pert'));
+  $('#m-crash').setAttribute('aria-pressed',String(m==='crash'));
+  $('#b-ex').textContent=m==='pert'?'Cargar ejemplo PERT':(m==='crash'?'Cargar ejemplo del libro':'Cargar ejemplo Koll');
   $('#exbadge').hidden=!ex;
   $('#ex-hint').hidden=!ex;
   if(ex==='pert'){
     $('#exbadge').textContent='Ejemplo didáctico PERT';
     $('#ex-hint').textContent='Red de Koll Business Center con los tiempos más probables (m) de la tabla 6.2; los tiempos optimista (a) y pesimista (b) son ilustrativos y no provienen del libro.';
+  }else if(ex==='crash'){
+    $('#exbadge').textContent='Ejemplo del libro: concesiones de costo y duración';
+    $('#ex-hint').textContent='Red y costos de la figura 9.3 (cap. 9); la secuencia de acortamiento la calcula esta aplicación, puede no coincidir en cada ronda con la mostrada en el libro. Agrega costo indirecto 400 y ahorro 50 por periodo para comparar con la figura 9.5/9.6.';
   }else if(ex){
     $('#exbadge').textContent='Ejemplo: Koll Business Center';
     $('#ex-hint').textContent='Duraciones de la tabla 6.2 del libro (figuras 6.5 a 6.7), en días hábiles. La descripción es opcional.';
@@ -873,10 +1216,23 @@ function syncMode(){
 
 function update(){
   save();
-  var res=analyze();lastRes=res;
-  renderMsgs(res);
   updateTeCells();
   syncMode();
+  if(state.mode==='crash'){
+    var graph=buildCrash();
+    renderMsgs(graph);
+    var ok=!!graph.ok;
+    $('#results').hidden=true;
+    $('#pert').hidden=true;
+    $('#crash').hidden=!ok;
+    if(!ok)return;
+    var run=runCrash(graph);
+    renderCrash(graph,run);
+    return;
+  }
+  $('#crash').hidden=true;
+  var res=analyze();lastRes=res;
+  renderMsgs(res);
   var ok=!!res.ok;
   $('#results').hidden=!ok;
   if(!ok){$('#pert').hidden=true;return;}
@@ -901,15 +1257,18 @@ $('#rows').addEventListener('keydown',function(e){
 });
 function addRow(){
   var r=mk(nextId(),'','','');state.rows.push(r);state.example=false;renderRows();update();
-  var el=document.getElementById((state.mode==='pert'?'pa-':'du-')+r.uid);if(el)el.focus();
+  var first=state.mode==='pert'?'pa-':(state.mode==='crash'?'du-':'du-');
+  var el=document.getElementById(first+r.uid);if(el)el.focus();
 }
 function syncInputs(){
   $('#in-unit').value=state.unit;$('#in-deadline').value=state.deadline;
   $('#in-ts').value=state.pertTs;$('#in-p').value=state.pertP;
+  $('#in-cbase').value=state.crashBase;$('#in-crate').value=state.crashRate;$('#in-ctarget').value=state.crashTarget;
 }
 function loadEx(kind){
   state.rows=exRows(kind);state.mode=kind;state.example=kind;state.unit='días hábiles';state.deadline='';
   if(kind==='pert'){state.pertTs='250';state.pertP='90';}
+  if(kind==='crash'){state.crashBase='400';state.crashRate='50';state.crashTarget='';}
   syncInputs();renderRows();update();
 }
 function setMode(m){
@@ -919,7 +1278,7 @@ function setMode(m){
   state.rows.forEach(function(r){
     var e=function(s){return String(s).trim()==='';};
     if(m==='pert'&&e(r.a)&&e(r.m)&&e(r.b)&&!e(r.dur)){r.a=r.m=r.b=String(r.dur);}
-    if(m==='cpm'&&e(r.dur)&&!e(r.a)&&!e(r.m)&&!e(r.b)){
+    if((m==='cpm'||m==='crash')&&e(r.dur)&&!e(r.a)&&!e(r.m)&&!e(r.b)){
       var a=Number(r.a),mm=Number(r.m),b=Number(r.b);
       if(isFinite(a+mm+b))r.dur=String(Math.round((a+4*mm+b)/6*100)/100);
     }
@@ -928,6 +1287,7 @@ function setMode(m){
 }
 $('#m-cpm').addEventListener('click',function(){setMode('cpm');});
 $('#m-pert').addEventListener('click',function(){setMode('pert');});
+$('#m-crash').addEventListener('click',function(){setMode('crash');});
 $('#b-add').addEventListener('click',addRow);
 $('#b-ex').addEventListener('click',function(){loadEx(state.mode);});
 $('#b-clear').addEventListener('click',function(){state.rows=[mk('A','','','')];state.deadline='';state.example=false;$('#in-deadline').value='';renderRows();update();});
@@ -935,6 +1295,9 @@ $('#in-unit').addEventListener('input',function(e){state.unit=e.target.value;upd
 $('#in-deadline').addEventListener('input',function(e){state.deadline=e.target.value;update();});
 $('#in-ts').addEventListener('input',function(e){state.pertTs=e.target.value;update();});
 $('#in-p').addEventListener('input',function(e){state.pertP=e.target.value;update();});
+$('#in-cbase').addEventListener('input',function(e){state.crashBase=e.target.value;update();});
+$('#in-crate').addEventListener('input',function(e){state.crashRate=e.target.value;update();});
+$('#in-ctarget').addEventListener('input',function(e){state.crashTarget=e.target.value;update();});
 $('#b-copy').addEventListener('click',function(){
   if(!lastRes||!lastRes.ok)return;
   var isP=state.mode==='pert';
